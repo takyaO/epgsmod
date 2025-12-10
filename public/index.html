@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>EPGSmod</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    body { font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; background: #f4f4f4; }
+    h1 { font-size: 1.4rem; text-align: center; }
+    .card { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+    select,input,button { width: 100%; margin-top: 10px; padding: 10px; }
+    #log { background: black; color: #0f0; padding: 10px; height: 150px; overflow-y: auto; }
+</style>
+</head>
+<body>
+
+<h1>📺 ジャンル検索 & 予約</h1>
+
+<div class="card">
+    <h3>🌐 EPGStation設定</h3>
+    <input type="url" id="epgApiUrl" value="http://localhost:8888" placeholder="例: http://localhost:8888">
+    <button onclick="saveApiUrl()">URLを保存</button>
+</div>
+
+<div class="card">
+    <h3>1. ジャンル選択</h3>
+    <select id="limitSelect">
+      <option value="10">10 件</option>
+      <option value="50">50 件</option>
+      <option value="100">100 件</option>
+      <option value="200" selected>200 件</option>
+    </select>
+    <select id="genreSelect"></select>
+    <button onclick="searchSchedules()">検索</button>
+</div>
+
+<div class="card">
+    <h3>2. 番組選択</h3>
+
+    <select id="programList" size="6" onchange="selectProgram()"></select>
+
+    <!-- ★ 「[新]のみ表示」チェックボックス -->
+<div style="margin-top:6px;">
+    <label style="display:flex; align-items:center; gap:4px; font-size:13px; white-space:nowrap;">
+        <input type="checkbox" id="filterNewCheck" onchange="filterNewOnly()" style="margin:0;">
+        ［新］のみ表示
+    </label>
+</div>
+
+
+</div>
+
+
+<div class="card">
+    <h3>3. キーワード録画ルール追加</h3>
+
+    <input id="keywordInput" placeholder="番組名が入ります" style="width:100%; margin-bottom:8px;">
+
+    <!-- 横並びの検索ボタン -->
+    <div id="keywordSearchButtons" style="
+        display: flex;
+        gap: 6px;
+        margin: 6px 0;
+    ">
+        <button class="mini-btn" onclick="searchExternal('duck')">DuckDuckGo</button>
+        <button class="mini-btn" onclick="searchExternal('google')">Google</button>
+        <button class="mini-btn" onclick="searchExternal('wiki')">Wikipedia</button>
+    </div>
+
+    <!-- 横いっぱいの録画ルール追加ボタン -->
+    <button onclick="addRule()" style="
+        width: 100%;
+        padding: 10px;
+        font-size: 15px;
+        margin-top: 6px;
+    ">
+        録画ルール追加
+    </button>
+</div>
+
+<div class="card">
+    <h3>ログ</h3>
+    <div id="log">Ready...</div>
+</div>
+
+
+<script src="extractProgram.js"></script>
+<script>
+// ====================================================================
+// ▼▼▼ API URL管理のための変数の定義と関数の追加 ▼▼▼
+// ====================================================================
+
+// APIベースURLを保持するグローバル変数
+let EPG_API_BASE = 'http://localhost:8888'; 
+
+// URL入力欄の値を読み込み、変数とLocalStorageに保存する関数
+function saveApiUrl() {
+    const inputElement = document.getElementById('epgApiUrl');
+    // 末尾のスラッシュを削除し、変数に格納
+    EPG_API_BASE = inputElement.value.trim().replace(/\/$/, ''); 
+    alert(`EPGStation API URLを ${EPG_API_BASE} に設定しました。`);
+    // LocalStorageに保存
+    localStorage.setItem('epgApiUrl', EPG_API_BASE);
+    log(`API URL設定: ${EPG_API_BASE}`);
+}
+
+// ページ読み込み時の処理
+document.addEventListener('DOMContentLoaded', () => {
+    const savedUrl = localStorage.getItem('epgApiUrl');
+    const inputElement = document.getElementById('epgApiUrl');
+    
+    // LocalStorageに保存されたURLがあれば復元
+    if (savedUrl && inputElement) {
+        inputElement.value = savedUrl;
+        EPG_API_BASE = savedUrl;
+    }
+    log(`初期API URL: ${EPG_API_BASE}`);
+    
+    // 既存のジャンル選択肢の生成ロジック
+    const genreSelect = document.getElementById('genreSelect');
+    for (const [k,v] of Object.entries(genreMap)) {
+        const op = document.createElement('option');
+        op.value = k; op.textContent = v;
+        genreSelect.appendChild(op);
+    }
+    genreSelect.value = "7";
+});
+
+
+// ====================================================================
+// ▲▲▲ API URL管理セクション終わり ▲▲▲
+// ====================================================================
+
+const genreMap = {
+    0:"ニュース",1:"スポーツ",2:"情報",3:"ドラマ",
+    4:"音楽",5:"バラエティ",6:"映画",7:"アニメ/特撮",
+    8:"ドキュメンタリー",9:"劇場/公演",10:"趣味/教育",11:"福祉"
+};
+
+// genreSelectの初期化ロジックはDOMContentLoaded内に移動しました
+
+function log(msg){
+    const el = document.getElementById('log');
+    el.innerText = `[${new Date().toLocaleTimeString()}] ${msg}\n` + el.innerText;
+}
+
+async function searchSchedules(){
+    const genreId = Number(genreSelect.value);
+
+    // ★ プルダウンの limit を取得
+    const limit = Number(document.getElementById('limitSelect').value);
+
+    const payload = {
+        epgApiBase: EPG_API_BASE,
+        isHalfWidth: false,
+        option: {
+            keyword: "",
+            name: true, description: true, extended: true,
+            GR: true, BS: false, CS: false, SKY: false,
+
+            // subGenre を外す（任意扱い）
+            genres: [{ genre: genreId }]
+        },
+
+        // ★ 選択された limit を反映
+        limit: limit
+    };
+
+    try {
+        const res = await fetch('/proxy/search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (data && data.error) {
+            log("検索エラー: " + data.error);
+            alert("検索失敗: " + data.error);
+            return;
+        }
+
+        updateList(data);
+        log(`検索完了: ${data.length} 件`);
+    } catch(e){
+        log("検索エラー: " + e.message);
+        alert("検索失敗");
+    }
+}
+
+// グローバル（既に宣言されていなければ）
+let originalProgramList = [];
+
+// updateList の修正版
+function updateList(list){
+    const box = document.getElementById('programList');
+    box.innerHTML = "";
+
+    if (!Array.isArray(list)) {
+        originalProgramList = [];
+        return;
+    }
+
+    // 1) 受け取った一覧を原本として保持（filter切替に使用）
+    originalProgramList = list.slice();
+
+    // 2) 名前有りの要素だけ取り出して日本語ソート
+    const filteredAndSorted = originalProgramList
+        .filter(p => p && p.name) // p が存在し name があることを確認
+        .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+
+    // 3) 表示用に option を作成（開始日時があれば表示に含める）
+    filteredAndSorted.forEach(p => {
+        const op = document.createElement('option');
+
+        // startAt がある／有効な日付かをチェックしてフォーマット
+        let startTime = "";
+        if (p.startAt) {
+            const d = new Date(p.startAt);
+            if (!Number.isNaN(d.getTime())) {
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const dd = String(d.getDate()).padStart(2, '0');
+                const hh = String(d.getHours()).padStart(2, '0');
+                const mi = String(d.getMinutes()).padStart(2, '0');
+                startTime = `${mm}/${dd} ${hh}:${mi}`; // 例: 12/10 18:00
+            }
+        }
+
+        op.value = p.name; // キーワード入力に使う値は番組名のみ
+        op.textContent = startTime ? `[${startTime}] ${p.name}` : p.name;
+        box.appendChild(op);
+    });
+
+    // 4) 現在「［新］のみ表示」がオンなら絞り込む（切替後も一貫して動かすため）
+    const chk = document.getElementById('filterNewCheck');
+    if (chk && chk.checked) {
+        filterNewOnly(); // 既に用意した関数を利用
+    }
+}
+
+function filterNewOnly() {
+    const listBox = document.getElementById("programList");
+    listBox.innerHTML = "";
+
+    if (!Array.isArray(originalProgramList)) return;
+
+    const filter = document.getElementById('filterNewCheck').checked;
+
+    let filtered = originalProgramList;
+    if (filter) {
+        filtered = originalProgramList.filter(x => {
+            const n = x && x.name ? x.name : "";
+            return n.includes("［新］") || n.includes("[新]");
+        });
+    }
+
+    filtered.forEach(p => {
+        if (!p || !p.name) return;
+        const op = document.createElement("option");
+
+        let startTime = "";
+        if (p.startAt) {
+            const d = new Date(p.startAt);
+            if (!Number.isNaN(d.getTime())) {
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const dd = String(d.getDate()).padStart(2, '0');
+                const hh = String(d.getHours()).padStart(2, '0');
+                const mi = String(d.getMinutes()).padStart(2, '0');
+                startTime = `${mm}/${dd} ${hh}:${mi}`;
+            }
+        }
+
+        op.value = p.name;
+        op.textContent = startTime ? `[${startTime}] ${p.name}` : p.name;
+        listBox.appendChild(op);
+    });
+}
+    
+function parseProgramName(name) {
+    if (!name) return "";
+//     let title = name;
+    let title = name.replace(/^【[^】]*】/, '').trim();
+
+    // 例1: ＃ (全角・半角) 以降を削除する
+    // "番組名 #12 「サブタイトル」" -> "番組名 "
+    title = title.replace(/[#＃].*$/, '');
+    // 例2: 【】や[]で囲まれた特定タグ（[字] [再]など）を削除したい場合は以下のような行を追加
+//     title = title.replace(/(\[.*?\]|【.*?】|（.*?）|\(.*\))/g, '');
+    title = title.replace(/(\[.*?\]|【.*?】|\(.*\))/g, '');
+
+    // --- 「タイトル（54）」パターンを最優先で処理 ---
+    {
+        const episodeParen = /^(.*?)[（(][０-９0-9]+[）)]/;
+        const m = title.match(episodeParen);
+        if (m) return m[1].trim();
+    }
+
+    // Remove leading 【...】
+//     let filename = title.replace(/^【[^】]*】/, "");
+    let filename = title
+
+    // Delimiters used to detect program/episode split
+    const delimiter_order = [
+        "＃", "♯", "#", "第", "最終回", "最終話", "最終首",
+        "(", "（", "話", "★", "☆", "▼", "◆", "▽",
+        "【", "「", "『", " ", "　", "_", "["
+    ];
+
+    // Corresponding closing or secondary delimiters
+    const delimiter_pairs = {
+        "話": "",
+        "＃": "_", "♯": "_", "#": "_", "第": "_",
+        "最終回": "_", "最終話": "_", "最終首": "_",
+        "(": ")", "（": "）",
+        "★": "_", "☆": "_", "▼": "_", "▽": "_", "◆": "_",
+        " ": "_", "　": "_",
+        "【": "】", "「": "」", "『": "』",
+        "[": ".", "_": "."
+    };
+
+    let found_delimiter = "";
+    let PROGRAM = "";
+    let EPISODE = "";
+
+    // Detect matching delimiter
+    for (const d of delimiter_order) {
+        if (filename.includes(d)) {
+            found_delimiter = d;
+            break;
+        }
+    }
+
+    // Split by found delimiter
+    if (found_delimiter) {
+        const delimiter = found_delimiter;
+        const pos = filename.indexOf(delimiter);
+
+        PROGRAM = filename.slice(0, pos);
+        let rest = filename.slice(pos + delimiter.length);
+
+        const second = delimiter_pairs[delimiter];
+        if (second && rest.startsWith(second)) {
+            rest = rest.slice(second.length);
+        }
+        EPISODE = rest;
+
+        // Reattach prefix (第xx話 → 第)
+        if (["第", "最終回", "最終話", "最終首"].includes(delimiter)) {
+            EPISODE = delimiter + EPISODE;
+        }
+    } else {
+        PROGRAM = filename;
+    }
+
+    // ORIGINAL for drama/anime parsing
+    let ORIGINAL = PROGRAM
+        .replace(/\[[^\]]*\]/g, "")
+        .replace(/【[^】]*】/g, "")
+        .replace(/＜[^＞]*＞/g, "")
+        .replace(/[ 　]+/g, " ")
+        .trim();
+
+    // ---- DRAMA / MOVIE / ANIME quotation detection ----
+
+    // Drama: ドラマ「～」
+    if (/ドラマ[^「『]*[「『][^」』]+[」』]/.test(ORIGINAL)) {
+        const m = ORIGINAL.match(/ドラマ[^「『]*[「『]([^」』]+)[」』]/);
+        if (m) PROGRAM = m[1];
+    }
+    else  if (/サスペンス[^「『]*[「『][^」』]+[」』]/.test(ORIGINAL)) {
+        const m = ORIGINAL.match(/サスペンス[^「『]*[「『]([^」』]+)[」』]/);
+        if (m) PROGRAM = m[1];
+    }
+    else  if (/懐ドラ[^「『]*[「『][^」』]+[」』]/.test(ORIGINAL)) {
+        const m = ORIGINAL.match(/懐ドラ[^「『]*[「『]([^」』]+)[」』]/);
+        if (m) PROGRAM = m[1];
+    }
+    // Theater movie
+    else if (/劇場[^「『]*[「『][^」』]+[」』]/.test(ORIGINAL)) {
+        const m = ORIGINAL.match(/劇場[^「『]*[「『]([^」』]+)[」』]/);
+        if (m) PROGRAM = m[1];
+    }
+    else if (/ミステリー[^「『]*[「『][^」』]+[」』]/.test(ORIGINAL)) {
+        const m = ORIGINAL.match(/ミステリー[^「『]*[「『]([^」』]+)[」』]/);
+        if (m) PROGRAM = m[1];
+    }
+    // Pure quoted title
+    else if (/^[「『][^」』]+[」』]/.test(ORIGINAL)) {
+        const m = ORIGINAL.match(/^[「『]([^」』]+)[」』]/);
+        if (m) PROGRAM = m[1];
+    }
+    // Anime: アニメ「～」
+    else if (/アニメ[^「『]*[「『][^」』]+[」』]/.test(ORIGINAL)) {
+        const m = ORIGINAL.match(/アニメ[^「『]*[「『]([^」』]+)[」』]/);
+        if (m) PROGRAM = m[1];
+    }
+    // 日５「～」
+    else if (/日５[^「『]*[「『][^」』]+[」』]/.test(ORIGINAL)) {
+        const m = ORIGINAL.match(/日５[^「『]*[「『]([^」』]+)[」』]/);
+        if (m) PROGRAM = m[1];
+    }
+    // Generic cleanup
+    else {
+        PROGRAM = ORIGINAL
+            .replace(/【[^】]*】/g, '')  // ★ Bash: -e 's/【[^】]*】//g' に相当 (対になったものを削除)
+            .replace(/＜[^＞]*＞/g, '') // ＜タイトル＞
+            .replace(/[「『][^」』]*[」』].*/g, '') // 「タイトル」以降を削除
+            .replace(/◆.*$/, '') // ◆以降を削除
+            .replace(/▼.*$/, '') // ▼以降を削除
+            .replace(/▽.*$/, '') // ▽以降を削除
+            .replace(/^アニメ/, '') // 先頭の "アニメ" を削除
+            .replace(/【/g, '') // ★ Bash: -e 's/【//g' に相当 (残った全ての【を削除)
+//.replace(/[「『][^」』]*[」』].*/, "")
+//            .replace(/[◆▼▽☆★].*/, "")
+           .replace(/アニメの神様/, "")
+            .replace(/プチプチ・アニメ/, "")
+            .replace(/ミニアニメ/, "")
+            .replace(/限界アニメ/, "")
+            .replace(/アニメ/, "")
+//            .replace(/【/, "")
+            .replace(/[ 　]+$/, "")
+            .replace(/^[ 　]+/, "")
+            .replace(/[ 　].*/, "");
+    }
+
+    // Cleanup EPISODE
+    EPISODE = EPISODE
+        .replace(/\[[^\]]*\]/g, "")
+        .replace(/__.*$/, "");
+
+    // If PROGRAM becomes empty, fallback
+    const MATCH_LIST = ["アニメ", "プチプチ・アニメ", "ミニアニメ"];
+    if (!PROGRAM || MATCH_LIST.includes(PROGRAM)) {
+        PROGRAM = EPISODE;
+    }
+
+    return PROGRAM.trim();
+
+    // 前後の空白を削除
+//     return title.trim();
+}
+
+function selectProgram(){
+    // 元の処理:
+//    document.getElementById('keywordInput').value = document.getElementById('programList').value;
+    
+    // ▼▼▼ 変更: パーサーを通してからセットする ▼▼▼
+    const rawName = document.getElementById('programList').value;
+//     const cleanName = parseProgramName(rawName);
+    const cleanName = extractProgram(rawName);
+    document.getElementById('keywordInput').value = cleanName;
+}
+
+async function addRule(){
+    const keyword = document.getElementById('keywordInput').value;
+    if (!keyword) return alert("キーワードを入力");
+    
+    // ★★★ 修正箇所: EPG_API_BASEが設定されているかチェック ★★★
+    if (!EPG_API_BASE || EPG_API_BASE.trim() === '') {
+        log("エラー: EPG API URLが設定されていません。");
+        alert("EPG API URLを設定し、[URLを保存]を押してください。");
+        return;
+    }
+
+    if (!confirm(`「${keyword}」をルール追加しますか？`)) return;
+
+    // ★★★ 修正箇所: EPG_API_BASEをJSONデータに追加 ★★★
+    const payload = {
+        // EPG_API_BASEをサーバーに伝えるために追加
+        epgApiBase: EPG_API_BASE, 
+        
+        isTimeSpecification: false,
+        searchOption: {
+            keyword,
+            name: true, description: true, extended: true,
+            GR: true, BS: true, CS: true
+        },
+        reserveOption: {
+            enable: true,
+            allowEndLack: false,
+            avoidDuplicate: true
+        }
+    };
+
+    try {
+        const r = await fetch('/proxy/rule', {
+            method: 'POST',
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        const data = await r.json();
+        
+        if (data && data.error) {
+            log(`追加エラー: ${data.error}`);
+            alert(`追加失敗: ${data.error}`);
+            return;
+        }
+
+        log(`追加 OK: ルールID ${data.id}`);
+        alert("追加しました！");
+    } catch(e){
+        log("追加エラー: " + e.message);
+        alert("追加失敗");
+    }
+}
+function searchExternal(type) {
+    const keyword = document.getElementById('keywordInput').value.trim();
+    if (!keyword) {
+        alert("キーワードを入力してください");
+        return;
+    }
+
+    let url = "";
+    const q = encodeURIComponent(keyword);
+
+    switch (type) {
+        case "duck":
+            url = `https://duckduckgo.com/?q=${q}`;
+            break;
+        case "google":
+            url = `https://www.google.com/search?q=${q}`;
+            break;
+        case "wiki":
+            url = `https://ja.wikipedia.org/wiki/Special:Search?search=${q}`;
+            break;
+    }
+
+    window.open(url, "_blank");
+}
+
+</script>
+</body>
+</html>

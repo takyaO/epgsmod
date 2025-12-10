@@ -1,5 +1,6 @@
 # EPGSmod
-![epgsmod.png](./epgsmod.png)
+<img src="./epgsmod.png" alt="epgsmod.png" width="200">
+
 **テレビ録画管理サーバー EPGStation** の使い勝手を支援するツールです。ジャンルごとに、放送される番組のリストを一括取得し、選択した番組の「番組名」を抽出して、これをキーワードとして録画ルールに追加します。スマホ利用を想定して、文字入力の手間を極力避ける
 
 ## 動作要件
@@ -15,7 +16,7 @@ sudo docker run -d --network host --name epgsmod --restart unless-stopped ghcr.i
 
 EPGStationの URL:port を入力する。
 
-![screenshot](./Screenshot_20251210-204708.png)
+<img src="./Screenshot_20251210-204708.png" alt="screenshot" width="400">
 
 
 

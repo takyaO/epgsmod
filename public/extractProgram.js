@@ -27,6 +27,8 @@ function extractProgram(filePath) {
 
     // 3. FILENAMEの整形 (先頭文字列削除)
     let FILENAME = BASENAME
+        .replace(/^\[[^\]]+\]/, '') // 先頭の [字] などを削除 (一度目)
+        .replace(/^\[[^\]]+\]/, '') // 先頭の [字] などを削除 (二度目、Bashロジックに合わせる)
         .replace(/^【[^】]*】/, '') // 【夜ドラ】 などを削除
         .replace(/^＜[^＞]*＞/, '') 
         .replace(/^時代劇[ \s]*/, '')
@@ -66,13 +68,13 @@ function extractProgram(filePath) {
                 const index = FILENAME.indexOf(pos);
                 PROGRAM = FILENAME.substring(0, index);
                 EPISODE = pos;
-            } else {
-                // 「話」の前が数字でない場合
-                if (FILENAME.includes("話")) {
-                    const temp = FILENAME.slice(0, FILENAME.lastIndexOf("話"));
-                    PROGRAM = temp.slice(0, -1);
-                    EPISODE = FILENAME.substring(PROGRAM.length);
-                }
+//            } else {
+//                // 「話」の前が数字でない場合
+//                if (FILENAME.includes("話")) {
+//                    const temp = FILENAME.slice(0, FILENAME.lastIndexOf("話"));
+//                    PROGRAM = temp.slice(0, -1);
+//                    EPISODE = FILENAME.substring(PROGRAM.length);
+//                }
             }
         } else {
             // その他デリミタによる分割
@@ -99,8 +101,6 @@ function extractProgram(filePath) {
     // 6. PROGRAMの整理とORIGINALの準備
     // ORIGINAL = PROGRAMから [字] などを削除
     let ORIGINAL = PROGRAM
-        .replace(/^\[[^\]]+\]/, '') // 先頭の [字] などを削除 (一度目)
-        .replace(/^\[[^\]]+\]/, '') // 先頭の [字] などを削除 (二度目、Bashロジックに合わせる)
         .replace(/\[.*$/, ''); // [以降を削除
 
     let extractedProgram = "";

@@ -1,13 +1,13 @@
 # EPGSmod
 <img src="./epgsmod.png" alt="epgsmod.png" width="200">
 
-テレビ録画管理サーバー EPGStation の使い勝手を支援するツール。
+テレビ録画管理サーバー EPGStation の使い勝手をよくする支援ツール。
 
 1. ジャンルごとに、放送される番組のリストを一括取得し、
-2. 選択した番組エピソードの「番組名」を抽出して、
-3. 「番組名」をキーワードとして録画ルールに追加
+2. リストから選択した番組一話（エピソード）から、「番組名」を抽出して、
+3. 抽出した「番組名」をキーワードとして、録画ルールに追加する
 
-スマホ利用を想定して、文字入力やマウス操作の手間を極力避けるための便利ツール。
+スマホ利用を想定して、文字入力の手間を省くための便利ツール。
 
 ## 動作要件
 
@@ -18,9 +18,16 @@ https://github.com/l3tnun/EPGStation
 
 sudo docker run -d --network host --name epgsmod --restart unless-stopped ghcr.io/takyao/epgsmod:latest
 
+## 使用法
+
 ブラウザで3001ポートにアクセス。http://localhost:3001
 
 EPGStationの URL:port を入力する。
+
+番組改編期に、新番組（シリーズ）の録画予約登録に使える。
+
+選択した「番組名」にて、ワンクリックで検索エンジンで検索できる。
+
 
 <img src="./Screenshot_20251210-204708.png" alt="screenshot" width="400">
 

@@ -191,7 +191,6 @@ async function searchSchedules(){
 // グローバル（既に宣言されていなければ）
 let originalProgramList = [];
 
-// updateList の修正版
 function updateList(list){
     const box = document.getElementById('programList');
     box.innerHTML = "";
@@ -208,6 +207,9 @@ function updateList(list){
     const filteredAndSorted = originalProgramList
         .filter(p => p && p.name) // p が存在し name があることを確認
         .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+    
+    // ▼追加: 曜日の定義
+    const wdayList = ['日', '月', '火', '水', '木', '金', '土'];
 
     // 3) 表示用に option を作成（開始日時があれば表示に含める）
     filteredAndSorted.forEach(p => {
@@ -222,7 +224,12 @@ function updateList(list){
                 const dd = String(d.getDate()).padStart(2, '0');
                 const hh = String(d.getHours()).padStart(2, '0');
                 const mi = String(d.getMinutes()).padStart(2, '0');
-                startTime = `${mm}/${dd} ${hh}:${mi}`; // 例: 12/10 18:00
+                
+                // ▼追加: 曜日を取得
+                const wday = wdayList[d.getDay()];
+
+                // ▼変更: フォーマットに曜日を追加 (例: 12/10(水) 18:00)
+                startTime = `${mm}/${dd}(${wday}) ${hh}:${mi}`; 
             }
         }
 
@@ -237,7 +244,52 @@ function updateList(list){
         filterNewOnly(); // 既に用意した関数を利用
     }
 }
-
+//function updateList(list){
+//    const box = document.getElementById('programList');
+//    box.innerHTML = "";
+//
+//    if (!Array.isArray(list)) {
+//        originalProgramList = [];
+//        return;
+//    }
+//
+//    // 1) 受け取った一覧を原本として保持（filter切替に使用）
+//    originalProgramList = list.slice();
+//
+//    // 2) 名前有りの要素だけ取り出して日本語ソート
+//    const filteredAndSorted = originalProgramList
+//        .filter(p => p && p.name) // p が存在し name があることを確認
+//        .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+//
+//    // 3) 表示用に option を作成（開始日時があれば表示に含める）
+//    filteredAndSorted.forEach(p => {
+//        const op = document.createElement('option');
+//
+//        // startAt がある／有効な日付かをチェックしてフォーマット
+//        let startTime = "";
+//        if (p.startAt) {
+//            const d = new Date(p.startAt);
+//            if (!Number.isNaN(d.getTime())) {
+//                const mm = String(d.getMonth() + 1).padStart(2, '0');
+//                const dd = String(d.getDate()).padStart(2, '0');
+//                const hh = String(d.getHours()).padStart(2, '0');
+//                const mi = String(d.getMinutes()).padStart(2, '0');
+//                startTime = `${mm}/${dd} ${hh}:${mi}`; // 例: 12/10 18:00
+//            }
+//        }
+//
+//        op.value = p.name; // キーワード入力に使う値は番組名のみ
+//        op.textContent = startTime ? `[${startTime}] ${p.name}` : p.name;
+//        box.appendChild(op);
+//    });
+//
+//    // 4) 現在「［新］のみ表示」がオンなら絞り込む（切替後も一貫して動かすため）
+//    const chk = document.getElementById('filterNewCheck');
+//    if (chk && chk.checked) {
+//        filterNewOnly(); // 既に用意した関数を利用
+//    }
+//}
+//
 function filterNewOnly() {
     const listBox = document.getElementById("programList");
     listBox.innerHTML = "";

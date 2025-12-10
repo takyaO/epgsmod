@@ -32,8 +32,8 @@ function extractProgram(filePath) {
         .replace(/^【[^】]*】/, '') // 【夜ドラ】 などを削除
         .replace(/^＜[^＞]*＞/, '') 
         .replace(/^時代劇[ \s]*/, '')
-        .replace(/^映画[ \s]*/, '')
         .replace(/^映画の時間[ \s]*/, '')
+        .replace(/^映画[ \s]*/, '')
         .replace(/^金曜ロードショー[ \s]*/, '')
         .replace(/^午後ロー[ \s]*/, '')
         .replace(/^プチプチ・アニメ[ \s]*/, '')

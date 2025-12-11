@@ -18,9 +18,30 @@
 
 <div class="card">
     <h3>🌐 EPGStation設定</h3>
-    <input type="url" id="epgApiUrl" value="http://localhost:8888" placeholder="例: http://localhost:8888">
-    <button onclick="saveApiUrl()">URLを保存</button>
+    <div class="row">
+        <input type="url" id="epgApiUrl" value="http://localhost:8888" placeholder="例: http://localhost:8888">
+        <button onclick="saveApiUrl()">保存</button>
+    </div>
 </div>
+
+<style>
+.row {
+    display: flex;
+    align-items: center;
+}
+
+/* 入力欄を大きく */
+.row input[type="url"] {
+    flex: 1;
+}
+
+/* ボタンを小さく */
+.row button {
+    flex: 0;
+    padding: 4px 8px;
+    margin-left: 8px;
+}
+</style>
 
 <div class="card">
     <h3>1. ジャンル選択</h3>
@@ -57,15 +78,29 @@
     <input id="keywordInput" placeholder="番組名が入ります" style="width:100%; margin-bottom:8px;">
 
     <!-- 横並びの検索ボタン -->
-    <div id="keywordSearchButtons" style="
-        display: flex;
-        gap: 6px;
-        margin: 6px 0;
-    ">
-        <button class="mini-btn" onclick="searchExternal('duck')">DuckDuckGo</button>
-        <button class="mini-btn" onclick="searchExternal('google')">Google</button>
-        <button class="mini-btn" onclick="searchExternal('wiki')">Wikipedia</button>
-    </div>
+    <div id="keywordSearchButtons" class="compact-buttons">
+    <button class="mini-btn" onclick="searchExternal('duck')">Duck</button>
+    <button class="mini-btn" onclick="searchExternal('google')">Google</button>
+    <button class="mini-btn" onclick="searchExternal('wiki')">Wiki</button>
+    <button class="mini-btn" onclick="searchExternal('tmdb')">TMDB</button>
+</div>
+
+<style>
+.compact-buttons {
+    display: flex;
+    flex-wrap: wrap;      /* ← これが重要！ スマホで折り返す */
+    gap: 4px;             /* 少しだけ間隔を詰める */
+    margin: 6px 0;
+}
+
+.compact-buttons .mini-btn {
+    padding: 4px 6px;     /* 小さめボタン */
+    font-size: 12px;      /* 小さめ文字 */
+    flex: 1;              /* ボタンを均等幅に */
+    min-width: 72px;      /* スマホで極小化しすぎない */
+    white-space: nowrap;  /* 文字折り返し防止 */
+}
+</style>
 
     <!-- 横いっぱいの録画ルール追加ボタン -->
     <button onclick="addRule()" style="
@@ -376,6 +411,9 @@ function searchExternal(type) {
             break;
         case "wiki":
             url = `https://ja.wikipedia.org/wiki/Special:Search?search=${q}`;
+            break;
+        case "tmdb":
+            url = `https://www.themoviedb.org/search?query=${keyword}`;
             break;
     }
 

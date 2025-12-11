@@ -270,6 +270,8 @@ function filterNewOnly() {
         });
     }
 
+    const wdayList = ['日', '月', '火', '水', '木', '金', '土'];
+
     filtered.forEach(p => {
         if (!p || !p.name) return;
         const op = document.createElement("option");
@@ -282,7 +284,9 @@ function filterNewOnly() {
                 const dd = String(d.getDate()).padStart(2, '0');
                 const hh = String(d.getHours()).padStart(2, '0');
                 const mi = String(d.getMinutes()).padStart(2, '0');
-                startTime = `${mm}/${dd} ${hh}:${mi}`;
+                const wday = wdayList[d.getDay()];
+
+                startTime = `${mm}/${dd}(${wday}) ${hh}:${mi}`;
             }
         }
 

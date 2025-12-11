@@ -68,12 +68,13 @@ function extractProgram(filePath) {
                 const index = FILENAME.indexOf(pos);
                 PROGRAM = FILENAME.substring(0, index);
                 EPISODE = pos;
-//            } else {
+            } else {
 //                // 「話」の前が数字でない場合
 //                if (FILENAME.includes("話")) {
 //                    const temp = FILENAME.slice(0, FILENAME.lastIndexOf("話"));
 //                    PROGRAM = temp.slice(0, -1);
 //                    EPISODE = FILENAME.substring(PROGRAM.length);
+                    PROGRAM = FILENAME
 //                }
             }
         } else {

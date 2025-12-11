@@ -102,7 +102,8 @@
 
 // APIベースURLを保持するグローバル変数
 let EPG_API_BASE = 'http://localhost:8888'; 
-
+let originalProgramList = [];
+  
 // URL入力欄の値を読み込み、変数とLocalStorageに保存する関数
 function saveApiUrl() {
     const inputElement = document.getElementById('epgApiUrl');
@@ -198,8 +199,6 @@ async function searchSchedules(){
     }
 }
 
-// グローバル（既に宣言されていなければ）
-let originalProgramList = [];
 
 function updateList(list){
     const box = document.getElementById('programList');

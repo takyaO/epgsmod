@@ -77,6 +77,16 @@
         録画ルール追加
     </button>
 </div>
+<div class="card">
+    <h3>4. 競合チェック</h3>
+    <div style="margin-bottom: 10px; font-size: 0.9rem; color: #666;">
+        競合により予約できなかった番組と、その原因となっている予約を表示します。
+    </div>
+    <button onclick="checkConflicts()" style="background-color: #d9534f; color: white;">
+        ⚠ 競合を確認する
+    </button>
+    <div id="conflictList" style="margin-top:15px;"></div>
+</div>
 
 <div class="card">
     <h3>ログ</h3>
@@ -297,7 +307,6 @@ async function addRule(){
     const keyword = document.getElementById('keywordInput').value;
     if (!keyword) return alert("キーワードを入力");
     
-    // ★★★ 修正箇所: EPG_API_BASEが設定されているかチェック ★★★
     if (!EPG_API_BASE || EPG_API_BASE.trim() === '') {
         log("エラー: EPG API URLが設定されていません。");
         alert("EPG API URLを設定し、[URLを保存]を押してください。");
@@ -369,7 +378,173 @@ function searchExternal(type) {
 
     window.open(url, "_blank");
 }
+// ▼▼▼ 4. 競合ルール用スクリプト ▼▼▼
 
+/**
+ * 競合情報を取得して表示するメイン関数
+ */
+async function checkConflicts() {
+    const logDiv = document.getElementById('log');
+    const listDiv = document.getElementById('conflictList');
+    const apiUrl = document.getElementById('epgApiUrl').value.replace(/\/$/, '');
+
+    listDiv.innerHTML = '<p>検索中...</p>';
+    logDiv.innerText = '競合情報を取得しています(Proxy経由)...';
+
+    try {
+        // 1. 競合で落ちた予約を取得 (Proxy経由)
+        const conflictData = await fetchReservesViaProxy(apiUrl, 'conflict');
+        
+        // 2. 有効な予約を取得 (Proxy経由)
+        const activeData = await fetchReservesViaProxy(apiUrl, 'normal');
+
+        const lostReserves = conflictData.reserves || [];
+        const keptReserves = activeData.reserves || [];
+
+        listDiv.innerHTML = ''; // クリア
+
+        if (lostReserves.length === 0) {
+            listDiv.innerHTML = '<p style="text-align:center; color:#28a745;">現在、競合している予約はありません。</p>';
+            logDiv.innerText = '競合なし';
+            return;
+        }
+
+        // 3. マッチング処理と表示 (ここは変更なし)
+        let count = 0;
+        lostReserves.forEach(lost => {
+            const enemies = keptReserves.filter(kept => {
+                return (lost.startAt < kept.endAt) && (lost.endAt > kept.startAt);
+            });
+
+            if (enemies.length > 0) {
+                count++;
+                const card = createConflictCard(lost, enemies);
+                listDiv.appendChild(card);
+            }
+        });
+
+        if (count === 0) {
+             listDiv.innerHTML = '<p>競合リストにはありますが、現在の有効予約と重なるものは見つかりませんでした。</p>';
+        }
+        logDiv.innerText = `競合チェック完了: ${count} 件の競合が見つかりました。`;
+
+    } catch (err) {
+        console.error(err);
+        listDiv.innerHTML = `<p style="color:red">エラーが発生しました: ${err.message}</p>`;
+        logDiv.innerText = `エラー: ${err.message}`;
+    }
+}
+
+/**
+ * プロキシ経由で予約リストを取得するヘルパー関数
+ */
+async function fetchReservesViaProxy(epgApiBase, type) {
+    const limit = type === 'conflict' ? 50 : 2000;
+    
+    // 検索機能と同じ形式でペイロードを作成
+    const payload = {
+        epgApiBase: epgApiBase,
+        type: type,
+        limit: limit
+    };
+
+    const res = await fetch('/proxy/reserves', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Server Error (${res.status}): ${errText}`);
+    }
+    return await res.json();
+}
+
+/**
+ * 予約削除を実行する関数 (Proxy経由)
+ */
+async function deleteReserve(reserveId, name) {
+    if(!confirm(`以下の予約を削除しますか？\n\n「${name}」`)) return;
+
+    const logDiv = document.getElementById('log');
+    const apiUrl = document.getElementById('epgApiUrl').value.replace(/\/$/, '');
+
+    try {
+        const payload = {
+            epgApiBase: apiUrl,
+            reserveId: reserveId
+        };
+
+        const res = await fetch('/proxy/reserves/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+            logDiv.innerText = `削除成功: ${name}`;
+            alert('削除しました。競合リストを更新します。');
+            checkConflicts(); // リスト再取得
+        } else {
+            throw new Error(`Status: ${res.status}`);
+        }
+    } catch (err) {
+        alert(`削除に失敗しました: ${err.message}`);
+        logDiv.innerText = `削除失敗: ${err.message}`;
+    }
+}
+
+function createConflictCard(lost, enemies) {
+    const container = document.createElement('div');
+    container.style.cssText = "border:1px solid #ccc; padding:10px; margin-bottom:10px; border-radius:4px; background-color:#fff0f0;";
+
+    // A. 録画できなかった番組
+    let html = `
+        <div style="margin-bottom:8px; padding-bottom:8px; border-bottom:1px dashed #ccc;">
+            <div style="font-weight:bold; color:#d9534f;">❌ 録画不可 (競合):</div>
+            <div style="font-size:1.1em;">${lost.name}</div>
+            <div style="font-size:0.85em; color:#555;">${formatTimeRange(lost.startAt, lost.endAt)}</div>
+            <div style="margin-top:5px;">
+                <button onclick="deleteReserve(${lost.id}, '${lost.name}')" class="mini-btn" style="background:#666; color:white;">予約取消</button>
+            </div>
+        </div>
+    `;
+
+    // B. 原因の番組
+    html += `<div style="font-weight:bold; color:#28a745; margin-bottom:5px;">✅ 優先された予約 (原因):</div>`;
+    enemies.forEach(enemy => {
+        html += `
+            <div style="background:white; padding:8px; border-radius:4px; margin-bottom:5px; border-left: 4px solid #28a745;">
+                <div>${enemy.name}</div>
+                <div style="font-size:0.85em; color:#555;">${formatTimeRange(enemy.startAt, enemy.endAt)}</div>
+                <button onclick="deleteReserve(${enemy.id}, '${enemy.name}')" class="mini-btn" style="margin-top:5px; background:#d9534f; color:white;">
+                    🗑 この予約を削除して解決
+                </button>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+    return container;
+}
+
+/**
+ * UNIX時間を読みやすい形式に変換 (MM/DD HH:mm〜HH:mm)
+ */
+function formatTimeRange(start, end) {
+    const fmt = (ts) => {
+        const d = new Date(ts);
+        const mon = d.getMonth() + 1;
+        const date = d.getDate();
+        const h = d.getHours().toString().padStart(2, '0');
+        const m = d.getMinutes().toString().padStart(2, '0');
+        return { full: `${mon}/${date} ${h}:${m}`, time: `${h}:${m}` };
+    };
+    const s = fmt(start);
+    const e = fmt(end);
+    return `${s.full} 〜 ${e.time}`;
+}
+  
 </script>
 </body>
 </html>

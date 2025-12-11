@@ -24,9 +24,15 @@ sudo docker run -d --network host --name epgsmod --restart unless-stopped ghcr.i
 
 EPGStationの URL:port を入力する。
 
-番組改編期に、新番組（シリーズ）の録画予約登録に使える。
+番組改編期に、新番組（シリーズ）の録画予約に使える。
 
-選択した「番組名」にて、ワンクリックで検索エンジンで検索できる。
+選択した「番組名」にて、ワンクリックでネット検索できる。
+
+予約の競合を、ワンクリックで解消できる。
+
+## 解説記事
+
+[テレビ録画メディアサーバー構築入門（第２６回）](https://note.com/leal_walrus5520/n/ncaf1feb3808c)
 
 
 <img src="./Screenshot_20251210-204708.png" alt="screenshot" width="400">

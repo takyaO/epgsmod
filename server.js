@@ -13,6 +13,7 @@ const path = require('path');
 const app = express();
 
 const PORT = 3001;
+//const EPG_API_BASE = 'http://100.70.190.41:8888'; 
 
 app.use(express.json());
 
@@ -65,6 +66,51 @@ app.post('/proxy/rule', function(req, res) {
         });
 });
 
+
+// 1. 予約リスト取得用プロキシ
+app.post('/proxy/reserves', async (req, res) => {
+    try {
+        const { epgApiBase, type, limit } = req.body;
+        // EPGStationのAPIを叩くURLを構築
+        const targetUrl = `${epgApiBase}/api/reserves?type=${type}&limit=${limit}&isHalfWidth=false`;
+        
+        console.log(`Proxy fetching: ${targetUrl}`);
+        
+        // ★ axios.get を使用
+        const apiRes = await axios.get(targetUrl);
+        
+        res.json(apiRes.data);
+    } catch (error) {
+        console.error("Proxy Error:", error.message);
+        // axiosのエラーは error.response.status でステータスを取得できる場合がある
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// 2. 予約削除用プロキシ
+app.post('/proxy/reserves/delete', async (req, res) => {
+    try {
+        const { epgApiBase, reserveId } = req.body;
+        const targetUrl = `${epgApiBase}/api/reserves/${reserveId}`;
+        
+        console.log(`Proxy deleting: ${targetUrl}`);
+
+        // ★ axios.delete を使用
+        const apiRes = await axios.delete(targetUrl);
+        
+        // axiosは成功時 status: 200, 204 など
+        if (apiRes.status >= 200 && apiRes.status < 300) {
+            res.status(200).send("OK");
+        } else {
+            // ここには通常到達しませんが、念のため
+            res.status(apiRes.status).send("Failed");
+        }
+    } catch (error) {
+        console.error("Proxy Delete Error:", error.message);
+        // EPGStation側で404などが返された場合、axiosはエラーを投げるためここで処理
+        res.status(500).json({ error: error.message });
+    }
+});
 
 // =========================
 // 起動

@@ -812,7 +812,23 @@ async function fetchReservesViaProxy(epgApiBase, type) {
     }
     return await res.json();
 }
-
+/**
+ * 文字列に含まれるHTML特殊文字をエスケープする
+ */
+function escapeHtml(str) {
+    if (typeof str !== 'string') {
+        return str;
+    }
+    return str.replace(/[&<>"']/g, function(match) {
+        return {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[match];
+    });
+}
 /**
  * 予約削除を実行する関数 (Proxy経由)
  */
@@ -940,10 +956,21 @@ async function fetchRules() {
     }
 }
 
+/**
+ * ルール一覧をHTML表示 (クリックリンク追加版)
+ */
 function renderRuleList(rules) {
     const listDiv = document.getElementById('ruleList');
     listDiv.innerHTML = '';
-
+    
+    // EPG API BASE URL はグローバル変数 EPG_API_BASE から取得
+    if (typeof EPG_API_BASE === 'undefined' || !EPG_API_BASE) {
+        // EPG_API_BASE が未定義の場合のフォールバック処理
+        // ここではエラーログを出力するか、処理を中断します。
+        // 実際には設定画面などで定義されている前提とします。
+        // return; 
+    }
+    
     // 1. アクティブなルール(enable: true)のみを抽出
     const activeRules = rules.filter(r => r.reserveOption && r.reserveOption.enable === true);
 
@@ -955,11 +982,15 @@ function renderRuleList(rules) {
     // IDの降順（新しい順）で表示
     activeRules.sort((a, b) => b.id - a.id).forEach(rule => {
         const sOpt = rule.searchOption || {};
+        const reserveCount = (rule.reservesCnt !== undefined) ? rule.reservesCnt : 0;
+        
+        // --- ルールクリック時のリンク先URL ---
+        const ruleLinkUrl = `${EPG_API_BASE}/#/search?rule=${rule.id}`;
 
         // --- 表示内容の組み立て ---
         let mainCondition = "";
         let icon = "";
-
+        
         if (sOpt.keyword) {
             icon = "🔍"; // 検索
             mainCondition = `<span style="font-weight:bold; color:#333;">${escapeHtml(sOpt.keyword)}</span>`;
@@ -969,7 +1000,7 @@ function renderRuleList(rules) {
             mainCondition = `<span style="font-weight:bold;">${gName}</span>`;
         } else {
             icon = "❓"; // その他
-            mainCondition = `<span style="font-style:italic; color:#888;">条件なし (全録画?)</span>`;
+            mainCondition = `<span style="font-style:italic; color:#888;">条件なし</span>`;
         }
 
         // 除外キーワード
@@ -984,51 +1015,55 @@ function renderRuleList(rules) {
             channelInfo = `<span style="font-size:0.75em; color:#0056b3; margin-left:8px;">${sOpt.channelIds.length}局指定</span>`;
         }
 
-        // --- HTML生成 (Flexboxでレイアウト調整) ---
+        // --- HTML生成 ---
         const item = document.createElement('div');
-        item.style.cssText = "display:flex; justify-content:space-between; align-items:flex-start; padding:12px 8px; border-bottom:1px solid #e9ecef;";
+        // style の変更: カーソルをポインターに変更
+        item.style.cssText = "display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding:10px 0; cursor: pointer; transition: background-color 0.2s;";
+        
+        // ★ クリックイベントの追加 (削除ボタンのクリックはバブリング防止で除外される前提)
+        item.onclick = () => {
+            window.open(ruleLinkUrl, '_blank'); // 別タブで開く
+            // window.location.href = ruleLinkUrl; // 同一タブで開く場合はこちら
+        };
 
+        // ホバーエフェクトの追加 (CSSの代わり)
+        item.onmouseover = function() { this.style.backgroundColor = '#f5f5f5'; };
+        item.onmouseout = function() { this.style.backgroundColor = 'white'; };
+        
         item.innerHTML = `
-            <div style="flex: 1; padding-right: 15px;">
-                <div style="font-size:0.95rem; line-height:1.4; word-break:break-all;">
+            <div style="flex: 1; padding-right: 15px; overflow: hidden; pointer-events: none;">
+                <div style="font-size:1rem; line-height:1.4; word-break:break-all;">
                     ${icon} ${mainCondition} ${channelInfo}
                 </div>
                 ${ignoreInfo}
             </div>
 
-            <div style="flex-shrink: 0;">
-                <button onclick="deleteRule(${rule.id})" class="mini-btn" style="
-                    background-color: #f8f9fa;
-                    color: #d9534f;
-                    border: 1px solid #d9534f;
-                    padding: 6px 12px;
-                    font-size: 0.85rem;
+            <div style="flex-shrink: 0; display: flex; align-items: center; gap: 10px;">
+                <span style="font-size:0.85rem; color:#666; white-space:nowrap; pointer-events: none;">
+                    予約: <b style="color:#333;">${reserveCount}</b>
+                </span>
+
+                <button onclick="deleteRule(${rule.id}); event.stopPropagation();" class="mini-btn" style="
+                    background-color: #f8f8f8; 
+                    color: #d9534f; 
+                    border: 1px solid #d9534f; 
+                    padding: 5px 10px;
+                    font-size: 0.9rem;
                     border-radius: 4px;
                     cursor: pointer;
                     white-space: nowrap;
-                ">
+                    transition: all 0.2s;
+                " onmouseover="this.style.backgroundColor='#d9534f'; this.style.color='white';" onmouseout="this.style.backgroundColor='#f8f8f8'; this.style.color='#d9534f';">
                     削除
                 </button>
             </div>
         `;
         listDiv.appendChild(item);
     });
-}
-
-/**
- * HTMLエスケープ用ヘルパー
- */
-function escapeHtml(str) {
-    if(!str) return "";
-    return str.replace(/[&<>"']/g, function(m) {
-        return {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#039;'
-        }[m];
-    });
+    
+    // **注意**: deleteRule関数が呼び出されると、親要素のクリックイベントが意図せず発火する可能性があります。
+    // そのため、削除ボタンの onclick ハンドラに event.stopPropagation(); を追加して、
+    // 親要素 (item) へのイベント伝播を停止させる必要があります。
 }
 
 /**

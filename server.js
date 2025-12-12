@@ -111,22 +111,49 @@ app.post('/proxy/reserves/delete', async (req, res) => {
     }
 });
 
-// 4. ルール一覧取得用プロキシ
+// 4. ルール一覧取得用プロキシ (予約数カウント機能付き)
 app.post('/proxy/rules', async (req, res) => {
     try {
         const { epgApiBase } = req.body;
-        // limitやoffsetが必要な場合はここで調整可能ですが、一旦全件取得(デフォルト)とします
-        const targetUrl = `${epgApiBase}/api/rules?limit=0`; 
         
-        console.log(`[Proxy] Fetching Rules: ${targetUrl}`);
-        
-        const apiRes = await axios.get(targetUrl);
-        res.json(apiRes.data);
+        console.log(`[Proxy] Fetching Rules & Reserves count...`);
+
+        // ルール一覧と、予約一覧(全件取得に近い状態)を並列で取得
+        const [rulesRes, reservesRes] = await Promise.all([
+            // 1. ルール取得: limit=0 (全件)
+            axios.get(`${epgApiBase}/api/rules?limit=0`),
+            
+            // 2. 予約取得: limit=9999, type=normal に加え、isHalfWidth=true を追加 ★★★
+            axios.get(`${epgApiBase}/api/reserves?limit=9999&type=normal&isHalfWidth=true`) 
+        ]);
+
+        const rules = rulesRes.data.rules || rulesRes.data;
+        const reserves = reservesRes.data.reserves || reservesRes.data;
+
+        // --- 集計処理 ---
+        const countMap = {};
+        reserves.forEach(r => {
+            if (r.ruleId) {
+                countMap[r.ruleId] = (countMap[r.ruleId] || 0) + 1;
+            }
+        });
+
+        // ルールリストに reservesCnt を付与して新しい配列を作成
+        const enrichedRules = rules.map(rule => {
+            return {
+                ...rule,
+                reservesCnt: countMap[rule.id] || 0
+            };
+        });
+
+        // クライアントへ返す
+        res.json({ rules: enrichedRules });
         
     } catch (error) {
         console.error("Proxy Rules Error:", error.message);
+        
         if (axios.isAxiosError(error) && error.response) {
-            res.status(error.response.status).json({ error: error.response.data.message || error.message });
+             res.status(error.response.status).json({ error: error.response.data.message || error.message });
         } else {
             res.status(500).json({ error: error.message });
         }

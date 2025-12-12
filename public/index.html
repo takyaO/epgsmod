@@ -702,7 +702,7 @@ function escapeHtml(str) {
  * ルール削除 (Proxy経由)
  */
 async function deleteRule(ruleId) {
-    if (!confirm(`Rule ID: ${ruleId} を削除しますか？\nこのルールによる将来の予約も解除される可能性があります。`)) {
+    if (!confirm(`削除しますか？\nこのルールによる将来の予約も解除される可能性があります。`)) {
         return;
     }
 

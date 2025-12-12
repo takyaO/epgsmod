@@ -346,15 +346,19 @@
         <button class="mini-btn" onclick="searchExternal('wiki')">Wiki</button>
         <button class="mini-btn" onclick="searchExternal('tmdb')">TMDB</button>
     </div>
-    <div style="margin-top:10px;">
-        <label style="display:flex; align-items:center; gap:6px; font-size:0.9rem; white-space: nowrap;">
-            <input type="checkbox" id="ignoreRebroadcastCheck">
-            ［再］を除外
-        </label>
+    <div style="margin-top:10px; display:flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+      <label style="display:flex; align-items:center; gap:6px; font-size:0.9rem; white-space: nowrap;">
+        <input type="checkbox" id="ignoreRebroadcastCheck">
+        ［再］を除外
+      </label>
+      <label style="display:flex; align-items:center; gap:6px; font-size:0.9rem; white-space: nowrap;">
+        <input type="checkbox" id="includeDescCheck">
+        概要・詳細を含む
+      </label>
     </div>
-    <button onclick="addRule()">
-        📝 録画ルール追加
-    </button>
+<button onclick="addRule()">
+    📝 録画ルール追加
+</button>
 </div>
 
 <div class="card">
@@ -614,6 +618,8 @@ function selectProgram() {
 async function addRule() {
     const keyword = document.getElementById('keywordInput').value.trim();
     const ignoreRebroadcastChecked = document.getElementById('ignoreRebroadcastCheck').checked;
+    // ★ 新規: 概要・詳細チェックボックスの状態を取得
+    const includeDescChecked = document.getElementById('includeDescCheck').checked;
 
     if (!keyword) return alert("キーワードを入力");
 
@@ -623,33 +629,41 @@ async function addRule() {
         return;
     }
 
-    if (!confirm(`「${keyword}」(除外:[再]:${ignoreRebroadcastChecked})をルール追加しますか？`)) return;
+    // 確認メッセージにも状態を表示
+    const descMsg = includeDescChecked ? "あり" : "なし";
+    if (!confirm(`「${keyword}」\n(除外:[再]: ${ignoreRebroadcastChecked} / 概要・詳細: ${descMsg})\nをルール追加しますか？`)) return;
 
     // 正常動作したペイロードをベースに作成
     const searchOption = {
         keyword: keyword,
-        name: true, 
-        description: true, 
-        extended: true,
-        GR: true, 
-        BS: true, 
+        name: true,
+        
+        // ★ 修正: チェックがあれば true, なければ false (デフォルト)
+        description: includeDescChecked,
+        extended: includeDescChecked,
+        
+        GR: true,
+        BS: true,
         CS: true,
     };
 
-    // ★★★ 修正箇所: チェックがある場合、ignoreKeyword と関連フラグを追加 ★★★
+    // ★★★ チェックがある場合、ignoreKeyword と関連フラグを追加 ★★★
     if (ignoreRebroadcastChecked) {
-        searchOption.ignoreKeyword = "[再]"; 
+        searchOption.ignoreKeyword = "[再]";
         
         // 必須フラグ: 除外キーワードが適用される検索対象フィールドを指定
-        searchOption.ignoreName = true;       // ★★★ ここを true に変更 ★★★
+        searchOption.ignoreName = true;
+        
+        // 概要・詳細も検索対象にする場合は、そこからの除外も考慮するか？
+        // 基本的には「タイトルに[再]」があれば除外したいケースが大半なので
+        // ignoreName: true だけで十分ですが、必要に応じて以下も調整可能です。
         searchOption.ignoreDescription = false;
         searchOption.ignoreExtended = false;
 
-        // キーワード処理オプション（念のため維持）
+        // キーワード処理オプション
         searchOption.ignoreKeyCS = false;
         searchOption.ignoreKeyRegExp = false;
     }
-    // ★★★ 修正箇所ここまで ★★★
     
     const payload = {
         epgApiBase: EPG_API_BASE,
@@ -663,7 +677,7 @@ async function addRule() {
     };
 
     try {
-        log(`録画ルール追加リクエスト: ${keyword} (除外:[再]:${ignoreRebroadcastChecked})`);
+        log(`録画ルール追加リクエスト: ${keyword} (除外:[再]:${ignoreRebroadcastChecked}, 詳細:${includeDescChecked})`);
         
         const r = await fetch('/proxy/rule', {
             method: 'POST',
@@ -680,8 +694,11 @@ async function addRule() {
 
         log(`追加 OK: ルールID ${data.id}`);
         alert("追加しました！");
+        
+        // フォームのリセット
         document.getElementById('keywordInput').value = '';
         document.getElementById('ignoreRebroadcastCheck').checked = false;
+        document.getElementById('includeDescCheck').checked = false; // ★リセット追加
     } catch(e){
         log("追加エラー: " + e.message);
         alert("追加失敗");

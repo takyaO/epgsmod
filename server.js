@@ -66,7 +66,6 @@ app.post('/proxy/rule', function(req, res) {
         });
 });
 
-
 // 1. 予約リスト取得用プロキシ
 app.post('/proxy/reserves', async (req, res) => {
     try {
@@ -109,6 +108,53 @@ app.post('/proxy/reserves/delete', async (req, res) => {
         console.error("Proxy Delete Error:", error.message);
         // EPGStation側で404などが返された場合、axiosはエラーを投げるためここで処理
         res.status(500).json({ error: error.message });
+    }
+});
+
+// 4. ルール一覧取得用プロキシ
+app.post('/proxy/rules', async (req, res) => {
+    try {
+        const { epgApiBase } = req.body;
+        // limitやoffsetが必要な場合はここで調整可能ですが、一旦全件取得(デフォルト)とします
+        const targetUrl = `${epgApiBase}/api/rules?limit=0`; 
+        
+        console.log(`[Proxy] Fetching Rules: ${targetUrl}`);
+        
+        const apiRes = await axios.get(targetUrl);
+        res.json(apiRes.data);
+        
+    } catch (error) {
+        console.error("Proxy Rules Error:", error.message);
+        if (axios.isAxiosError(error) && error.response) {
+            res.status(error.response.status).json({ error: error.response.data.message || error.message });
+        } else {
+            res.status(500).json({ error: error.message });
+        }
+    }
+});
+
+// 5. ルール削除用プロキシ
+app.post('/proxy/rules/delete', async (req, res) => {
+    try {
+        const { epgApiBase, ruleId } = req.body;
+        const targetUrl = `${epgApiBase}/api/rules/${ruleId}`;
+        
+        console.log(`[Proxy] Deleting Rule: ${targetUrl}`);
+        
+        const apiRes = await axios.delete(targetUrl);
+        
+        if (apiRes.status >= 200 && apiRes.status < 300) {
+            res.status(200).json({ success: true });
+        } else {
+            res.status(apiRes.status).json({ error: "Failed to delete" });
+        }
+    } catch (error) {
+        console.error("Proxy Delete Rule Error:", error.message);
+        if (axios.isAxiosError(error) && error.response) {
+            res.status(error.response.status).json({ error: error.response.data.message || error.message });
+        } else {
+            res.status(500).json({ error: error.message });
+        }
     }
 });
 

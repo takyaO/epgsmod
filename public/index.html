@@ -14,7 +14,7 @@
 </head>
 <body>
 
-<h1>📺 ジャンル検索 & 予約</h1>
+<h1>📺 EPGSmod 録画予約</h1>
 
 <div class="card">
     <h3>🌐 EPGStation設定</h3>
@@ -113,16 +113,16 @@
     </button>
 </div>
 <div class="card">
-    <h3>4. 競合チェック</h3>
-    <div style="margin-bottom: 10px; font-size: 0.9rem; color: #666;">
-        競合により予約できなかった番組と、その原因となっている予約を表示します。
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3>5. ルール一覧</h3>
+        <button onclick="fetchRules()" class="mini-btn" style="width:auto; background:#17a2b8; color:white;">
+            🔄 更新
+        </button>
     </div>
-    <button onclick="checkConflicts()" style="background-color: #d9534f; color: white;">
-        ⚠ 競合を確認する
-    </button>
-    <div id="conflictList" style="margin-top:15px;"></div>
+    <div id="ruleList" style="margin-top:15px; max-height:400px; overflow-y:auto;">
+        <p style="color:#666;">「更新」ボタンを押してルールを読み込んでください。</p>
+    </div>
 </div>
-
 <div class="card">
     <h3>ログ</h3>
     <div id="log">Ready...</div>
@@ -585,7 +585,155 @@ function formatTimeRange(start, end) {
     const e = fmt(end);
     return `${s.full} 〜 ${e.time}`;
 }
-  
+
+/**
+ * ルール一覧を取得 (Proxy経由)
+ */
+async function fetchRules() {
+    const listDiv = document.getElementById('ruleList');
+    const apiUrl = document.getElementById('epgApiUrl').value.replace(/\/$/, '');
+    
+    listDiv.innerHTML = '<p>ルールを取得中...</p>';
+    
+    try {
+        const payload = { epgApiBase: apiUrl };
+        
+        // Proxy経由でルール取得
+        const res = await fetch('/proxy/rules', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || res.statusText);
+        }
+
+        const data = await res.json();
+        const rules = data.rules || [];
+        
+        renderRuleList(rules);
+        log(`ルール一覧取得完了: ${rules.length}件`);
+
+    } catch (e) {
+        console.error(e);
+        listDiv.innerHTML = `<p style="color:red;">取得エラー: ${e.message}</p>`;
+        log(`ルール取得失敗: ${e.message}`);
+    }
+}
+
+/**
+ * ルール一覧をHTML表示
+ */
+function renderRuleList(rules) {
+    const listDiv = document.getElementById('ruleList');
+    listDiv.innerHTML = '';
+
+    if (rules.length === 0) {
+        listDiv.innerHTML = '<p>登録されているルールはありません。</p>';
+        return;
+    }
+
+    // IDの降順（新しい順）で表示
+    rules.sort((a, b) => b.id - a.id).forEach(rule => {
+        const sOpt = rule.searchOption || {};
+        
+        // --- 表示内容の組み立て ---
+        
+        // 1. キーワード or ジャンル
+        let mainCondition = "";
+        if (sOpt.keyword) {
+            mainCondition = `🎥 <b>キーワード:</b> <span style="font-size:1.1em; color:#0056b3;">${escapeHtml(sOpt.keyword)}</span>`;
+        } else if (sOpt.genres && sOpt.genres.length > 0) {
+            // genreMap がある前提 (なければ数値のみ表示)
+            const gName = (typeof genreMap !== 'undefined') ? genreMap[sOpt.genres[0].genre] : sOpt.genres[0].genre;
+            mainCondition = `📂 <b>ジャンル:</b> ${gName}`;
+        } else {
+            mainCondition = `❓ <b>条件なし</b> (全録画?)`;
+        }
+
+        // 2. 除外キーワード
+        let ignoreInfo = "";
+        if (sOpt.ignoreKeyword) {
+            ignoreInfo = `<div style="font-size:0.85em; color:#d9534f;">🚫 除外: ${escapeHtml(sOpt.ignoreKeyword)}</div>`;
+        }
+
+        // 3. 放送局指定の有無
+        let channelInfo = "";
+        if (sOpt.channelIds && sOpt.channelIds.length > 0) {
+            channelInfo = `<span style="font-size:0.8em; background:#eee; padding:2px 4px; border-radius:3px;">📺 放送局指定あり(${sOpt.channelIds.length}局)</span>`;
+        }
+
+        // --- HTML生成 ---
+        const item = document.createElement('div');
+        item.style.cssText = "border:1px solid #ddd; padding:10px; margin-bottom:8px; border-radius:4px; background:white; display:flex; justify-content:space-between; align-items:start;";
+        
+        item.innerHTML = `
+            <div style="flex-grow:1; margin-right:10px;">
+                <div style="margin:4px 0;">${mainCondition} ${channelInfo}</div>
+                ${ignoreInfo}
+            </div>
+            <button onclick="deleteRule(${rule.id})" style="background:#d9534f; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; white-space:nowrap;">
+                削除
+            </button>
+        `;
+        listDiv.appendChild(item);
+    });
+}
+
+/**
+ * HTMLエスケープ用ヘルパー
+ */
+function escapeHtml(str) {
+    if(!str) return "";
+    return str.replace(/[&<>"']/g, function(m) {
+        return {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        }[m];
+    });
+}
+
+/**
+ * ルール削除 (Proxy経由)
+ */
+async function deleteRule(ruleId) {
+    if (!confirm(`Rule ID: ${ruleId} を削除しますか？\nこのルールによる将来の予約も解除される可能性があります。`)) {
+        return;
+    }
+
+    const apiUrl = document.getElementById('epgApiUrl').value.replace(/\/$/, '');
+    
+    try {
+        const payload = { 
+            epgApiBase: apiUrl,
+            ruleId: ruleId 
+        };
+        
+        const res = await fetch('/proxy/rules/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+            log(`ルール削除成功: ID ${ruleId}`);
+            alert(`ルール ID ${ruleId} を削除しました。`);
+            fetchRules(); // リスト更新
+        } else {
+            const err = await res.json();
+            throw new Error(err.error || res.statusText);
+        }
+    } catch (e) {
+        alert(`削除失敗: ${e.message}`);
+        log(`ルール削除失敗: ${e.message}`);
+    }
+}
+
 </script>
 </body>
 </html>

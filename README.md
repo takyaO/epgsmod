@@ -1,5 +1,5 @@
 # EPGSmod
-<img src="./epgsmod.png" alt="epgsmod.png" width="200">
+<img src="./public/epgsmod.png" alt="epgsmod.png" width="200">
 
 テレビ録画管理サーバー EPGStation の「録画予約」機能の使い勝手をよくする支援ツール。
 

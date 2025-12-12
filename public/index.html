@@ -480,7 +480,6 @@ async function searchSchedules(){
     }
 }
 
-
 function updateList(list){
     const box = document.getElementById('programList');
     box.innerHTML = "";
@@ -578,9 +577,6 @@ function filterNewOnly() {
 }
 
 function selectProgram(){
-    // 元の処理:
-//    document.getElementById('keywordInput').value = document.getElementById('programList').value;
-
     // ▼▼▼ 変更: パーサーを通してからセットする ▼▼▼
     const rawName = document.getElementById('programList').value;
     const cleanName = extractProgram(rawName);
@@ -665,8 +661,6 @@ function searchExternal(type) {
 
     window.open(url, "_blank");
 }
-// ▼▼▼ 4. 競合ルール用スクリプト ▼▼▼
-
 /**
  * 競合情報を取得して表示するメイン関数
  */
@@ -875,13 +869,6 @@ async function fetchRules() {
     }
 }
 
-
-/**
- * ルール一覧をHTML表示 (スタイル調整版)
- * - enable:false のルールを除外
- * - シンプルな絵文字を再導入 (🔍, 📚, ❓)
- * - 削除ボタンのサイズと配置を最適化
- */
 function renderRuleList(rules) {
     const listDiv = document.getElementById('ruleList');
     listDiv.innerHTML = '';
@@ -977,7 +964,7 @@ function escapeHtml(str) {
  * ルール削除 (Proxy経由)
  */
 async function deleteRule(ruleId) {
-    if (!confirm(`削除しますか？\nこのルールによる将来の予約も解除される可能性があります。`)) {
+    if (!confirm(`削除しますか？`)) {
         return;
     }
 

@@ -1,9 +1,3 @@
-// ... extractProgram 関数  ...
-/**
- * ファイルパスから番組名を抽出する関数
- * @param {string} filePath - ファイルのフルパス
- * @returns {string} 抽出された番組名 (PROGRAM)
- */
 function extractProgram(filePath) {
     // 1. BASENAMEの抽出 (path.basenameのような処理)
     const parts = filePath.split(/[/\\]/); // スラッシュまたはバックスラッシュで分割
@@ -160,7 +154,6 @@ function extractProgram(filePath) {
             .trim()
             .replace(/★.*$/,"")
 	    .replace(/「.*$/, '');
-
 //            .replace(/[ \s].*$/, ''); 
     }
 

@@ -314,10 +314,14 @@
     <h3>2. 番組選択</h3>
     <select id="programList" size="6" onchange="selectProgram()"></select>
     
-    <div style="margin-top:10px;">
-        <label style="display:flex; align-items:center; gap:6px; font-size:0.9rem;">
-            <input type="checkbox" id="filterNewCheck" onchange="filterNewOnly()">
+    <div style="margin-top:10px; display:flex; gap: 20px;">
+        <label style="display:flex; align-items:center; gap:6px; font-size:0.9rem; white-space: nowrap;">
+          <input type="checkbox" id="filterNewCheck" onchange="filterNewOnly()">
             ［新］のみ表示
+        </label>
+        <label style="display:flex; align-items:center; gap:6px; font-size:0.9rem; white-space: nowrap;">
+            <input type="checkbox" id="noExtractCheck">
+            抽出処理省略
         </label>
     </div>
 </div>
@@ -342,7 +346,12 @@
         <button class="mini-btn" onclick="searchExternal('wiki')">Wiki</button>
         <button class="mini-btn" onclick="searchExternal('tmdb')">TMDB</button>
     </div>
-    
+    <div style="margin-top:10px;">
+        <label style="display:flex; align-items:center; gap:6px; font-size:0.9rem; white-space: nowrap;">
+            <input type="checkbox" id="ignoreRebroadcastCheck">
+            ［再］を除外
+        </label>
+    </div>
     <button onclick="addRule()">
         📝 録画ルール追加
     </button>
@@ -577,15 +586,35 @@ function filterNewOnly() {
     });
 }
 
-function selectProgram(){
-    // ▼▼▼ 変更: パーサーを通してからセットする ▼▼▼
+function selectProgram() {
+    // 1. 選択された <option> の value (rawName) を取得
     const rawName = document.getElementById('programList').value;
-    const cleanName = extractProgram(rawName);
-    document.getElementById('keywordInput').value = cleanName;
-}
+    
+    // 値が空の場合は終了
+    if (!rawName) return;
 
-async function addRule(){
-    const keyword = document.getElementById('keywordInput').value;
+    const keywordInput = document.getElementById('keywordInput');
+    
+    // 2. 抽出なしチェックボックスの状態を取得
+    // id="noExtractCheck" はHTMLで追加済みとします
+    const noExtractChecked = document.getElementById('noExtractCheck').checked;
+
+    if (noExtractChecked) {
+        // 抽出なしがチェックされている場合は、そのまま rawName を使用
+        keywordInput.value = rawName;
+        log(`キーワード設定: ${rawName} (抽出なし)`);
+    } else {
+        // 抽出なしがチェックされていない場合は、extractProgram 関数を使用
+        const extractedKeyword = extractProgram(rawName);
+        keywordInput.value = extractedKeyword;
+        log(`キーワード設定: ${extractedKeyword} (抽出あり)`);
+    }
+}    
+
+async function addRule() {
+    const keyword = document.getElementById('keywordInput').value.trim();
+    const ignoreRebroadcastChecked = document.getElementById('ignoreRebroadcastCheck').checked;
+
     if (!keyword) return alert("キーワードを入力");
 
     if (!EPG_API_BASE || EPG_API_BASE.trim() === '') {
@@ -594,19 +623,38 @@ async function addRule(){
         return;
     }
 
-    if (!confirm(`「${keyword}」をルール追加しますか？`)) return;
+    if (!confirm(`「${keyword}」(除外:[再]:${ignoreRebroadcastChecked})をルール追加しますか？`)) return;
 
-    // ★★★ 修正箇所: EPG_API_BASEをJSONデータに追加 ★★★
+    // 正常動作したペイロードをベースに作成
+    const searchOption = {
+        keyword: keyword,
+        name: true, 
+        description: true, 
+        extended: true,
+        GR: true, 
+        BS: true, 
+        CS: true,
+    };
+
+    // ★★★ 修正箇所: チェックがある場合、ignoreKeyword と関連フラグを追加 ★★★
+    if (ignoreRebroadcastChecked) {
+        searchOption.ignoreKeyword = "[再]"; 
+        
+        // 必須フラグ: 除外キーワードが適用される検索対象フィールドを指定
+        searchOption.ignoreName = true;       // ★★★ ここを true に変更 ★★★
+        searchOption.ignoreDescription = false;
+        searchOption.ignoreExtended = false;
+
+        // キーワード処理オプション（念のため維持）
+        searchOption.ignoreKeyCS = false;
+        searchOption.ignoreKeyRegExp = false;
+    }
+    // ★★★ 修正箇所ここまで ★★★
+    
     const payload = {
-        // EPG_API_BASEをサーバーに伝えるために追加
         epgApiBase: EPG_API_BASE,
-
         isTimeSpecification: false,
-        searchOption: {
-            keyword,
-            name: true, description: true, extended: true,
-            GR: true, BS: true, CS: true
-        },
+        searchOption: searchOption,
         reserveOption: {
             enable: true,
             allowEndLack: false,
@@ -615,6 +663,8 @@ async function addRule(){
     };
 
     try {
+        log(`録画ルール追加リクエスト: ${keyword} (除外:[再]:${ignoreRebroadcastChecked})`);
+        
         const r = await fetch('/proxy/rule', {
             method: 'POST',
             headers: { "Content-Type": "application/json" },
@@ -630,11 +680,14 @@ async function addRule(){
 
         log(`追加 OK: ルールID ${data.id}`);
         alert("追加しました！");
+        document.getElementById('keywordInput').value = '';
+        document.getElementById('ignoreRebroadcastCheck').checked = false;
     } catch(e){
         log("追加エラー: " + e.message);
         alert("追加失敗");
     }
 }
+
 function searchExternal(type) {
     const keyword = document.getElementById('keywordInput').value.trim();
     if (!keyword) {

@@ -158,6 +158,35 @@ app.post('/proxy/rules/delete', async (req, res) => {
     }
 });
 
+// 6. ルール追加用プロキシ
+app.post('/proxy/rules/add', async (req, res) => {
+    try {
+        const { epgApiBase, rulePayload } = req.body;
+        const targetUrl = `${epgApiBase}/api/rules`; // EPGStationのAPI URL
+        
+        console.log(`[Proxy] Adding Rule: ${targetUrl}`);
+        
+        // EPGStationのAPIを叩く (POSTメソッドでデータを送信)
+        const apiRes = await axios.post(targetUrl, rulePayload);
+        
+        // EPGStationの応答データには、作成されたルールのIDなどが含まれる
+        res.json(apiRes.data);
+        
+    } catch (error) {
+        console.error("Proxy Add Rule Error:", error.message);
+        
+        if (axios.isAxiosError(error) && error.response) {
+            res.status(error.response.status).json({ 
+                error: `EPGStation API Error: ${error.response.statusText}`,
+                details: error.response.data
+            });
+        } else {
+            res.status(500).json({ error: error.message });
+        }
+    }
+});
+
+
 // =========================
 // 起動
 // =========================

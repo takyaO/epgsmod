@@ -30,6 +30,7 @@ function extractProgram(filePath) {
         .replace(/^映画[ \s]*/, '')
         .replace(/^金曜ロードショー[ \s]*/, '')
         .replace(/^午後ロー[ \s]*/, '')
+        .replace(/^土曜プレミアム・映画[ \s]*/, '')
         .replace(/^プチプチ・アニメ[ \s]*/, '')
         .replace(/^ミニアニメ[ \s]*/, '')
         .replace(/^ドラマブレイク[ \s]*/, '')

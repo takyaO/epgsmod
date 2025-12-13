@@ -140,16 +140,8 @@ function extractProgram(filePath) {
             .replace(/▼.*$/, '')
             .replace(/▽.*$/, '')
             .replace(/^アニメ/, '') // 先頭の "アニメ" を削除
-            
             // ★ 修正/確認: 残った全ての【を削除する
-            .replace(/【/g, '') // Bash: -e 's/【//g' に相当
-            
-            // 以下の行は元のBashコードにはありませんでしたが、利便性のために残します
-            /* .replace(/アニメの神様/, "")
-            .replace(/プチプチ・アニメ/, "")
-            .replace(/ミニアニメ/, "")
-            .replace(/限界アニメ/, "")
-            .replace(/アニメ/, "") */
+            .replace(/[【】]/g, '') // Bash: -e 's/【//g' に相当
             
             // Bash: 前後の空白削除 + 最初のスペース以降を削除
             .trim()

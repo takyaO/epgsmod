@@ -284,6 +284,53 @@
             padding: 6px 8px;
         }
     }
+
+/* 1. ROW内のボタンコンテナを縦積みに変更 */
+.double-button-group {
+    display: flex;
+    flex-direction: column; /* 縦積み */
+    
+    /* ★★★ 修正: 横幅を極小に固定 ★★★ */
+    width: 50px; 
+    flex-shrink: 0; 
+    gap: 2px; /* ボタン間にわずかな隙間を追加 */
+}
+
+/* 2. 二つのボタンの幅を均等にする */
+.double-button-group button {
+    /* 縦積みなので flex-grow は不要だが、幅を100%に指定 */
+    width: 100%; 
+    margin: 0;
+    
+    /* ★★★ 修正: パディングとフォントサイズを再調整 ★★★ */
+    padding: 3px 0px; /* 上下のパディングを減らす */
+    font-size: 0.75rem; /* 文字サイズをさらに小さくし、50pxの幅に収める */
+    
+    cursor: pointer;
+    border: none;
+    box-sizing: border-box;
+}
+
+/* 3. 角丸の調整 (縦積み用の角丸に変更) */
+/* 上側のボタン (確認) */
+.double-button-group .left-btn {
+    border-radius: 4px; 
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0; /* 下のボタンと接する角を直角に */
+    
+    background-color: #6c757d; 
+    color: white;
+}
+
+/* 下側のボタン (保存) */
+.double-button-group .right-btn {
+    border-radius: 4px;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0; /* 上のボタンと接する角を直角に */
+
+    background-color: #007bff; 
+    color: white;
+}
 </style>
 </head>
 <body>
@@ -294,8 +341,12 @@
     <h3>🌐 EPGStation設定</h3>
     <div class="row">
         <input type="url" id="epgApiUrl" value="http://localhost:8888" placeholder="例: http://localhost:8888">
-        <button onclick="saveApiUrl()">保存</button>
-    </div>
+        
+        <div class="double-button-group">
+            <button onclick="checkApiUrl()" class="left-btn">確認</button>
+            <button onclick="saveApiUrl()" class="right-btn">保存</button>
+        </div>
+        </div>
 </div>
 
 <div class="card">
@@ -398,6 +449,26 @@
 // APIベースURLを保持するグローバル変数
 let EPG_API_BASE = 'http://localhost:8888';
 let originalProgramList = [];
+
+function checkApiUrl() {
+    const inputElement = document.getElementById('epgApiUrl');
+    const url = inputElement.value.trim().replace(/\/$/, '');
+    
+    if (!url) {
+        alert("EPG API URLを入力してください。");
+        return;
+    }
+
+    try {
+        // URLとして有効か確認
+        new URL(url);
+        log(`API URL確認: ${url} にジャンプします`);
+        window.open(url, '_blank'); // 新しいタブで開く
+    } catch (e) {
+        log(`API URL確認エラー: ${url} は無効なURLです。`);
+        alert("入力されたURLが不正な形式です。HTTPまたはHTTPSで始まる有効なURLを入力してください。");
+    }
+}
 
 // URL入力欄の値を読み込み、変数とLocalStorageに保存する関数
 function saveApiUrl() {

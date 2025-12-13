@@ -11,7 +11,9 @@ const express = require('express');
 const axios = require('axios');
 const path = require('path');
 const app = express();
-const PORT = 3001;
+//const PORT = 3001;
+// 環境変数 PORT が設定されていればそれを使用し、なければ 3001 をデフォルトとして使用する
+const PORT = process.env.PORT || 3001;
 const { URL } = require('url');
 
 app.use(express.json());

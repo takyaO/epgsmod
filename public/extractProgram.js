@@ -8,11 +8,11 @@ function extractProgram(fileName) {
 
     // 区切り文字と対応するセカンドデリミタを定義 (Mapを使用)
     const delimiterPairs = new Map([
-        ["話", ""], ["＃", "_"], ["♯", "_"], ["#", "_"], ["第", "_"],
-        ["最終回", "_"], ["最終話", "_"], ["最終首", "_"], ["(", ")"], ["（", "）"],
-        ["★", "_"], ["☆", "_"], ["▼", "_"], ["▽", "_"], ["◆", "_"],
-        [" ", "_"], ["【", "】"], ["「", "」"], ["『", "』"],
-        ["[", "."], ["　", "_"], ["_", "."]
+        ["話", ""], ["＃", "！"], ["♯", ""], ["#", ""], ["第", ""],
+        ["最終回", ""], ["最終話", ""], ["最終首", ""], ["(", ")"], ["（", "）"],
+        ["★", ""], ["☆", ""], ["▼", ""], ["▽", ""], ["◆", ""],
+        [" ", ""], ["【", "】"], ["「", "」"], ["『", "』"],
+        ["[", "."]
     ]);
 
     // 3. FILENAMEの整形 (先頭文字列削除)
@@ -21,6 +21,7 @@ function extractProgram(fileName) {
         .replace(/^\[[^\]]+\]/, '') // 先頭の [字] などを削除 (二度目、Bashロジックに合わせる)
         .replace(/^【[^】]*】/, '') // 【夜ドラ】 などを削除
         .replace(/^＜[^＞]*＞/, '') 
+        .replace(/^[＃#]/, '') 
         .replace(/^時代劇[ \s]*/, '')
         .replace(/^映画の時間[ \s]*/, '')
         .replace(/^映画[ \s]*/, '')
@@ -75,13 +76,13 @@ function extractProgram(fileName) {
             let rest = FILENAME.substring(index + delimiter.length);
             
             const secondDelimiter = delimiterPairs.get(delimiter);
-            
+
             if (secondDelimiter && rest.includes(secondDelimiter)) {
                 EPISODE = rest.substring(0, rest.indexOf(secondDelimiter));
             } else {
                 EPISODE = rest;
             }
-
+	    
             if (["第", "[", "最終回", "最終話", "最終首"].includes(delimiter)) {
                 EPISODE = delimiter + EPISODE;
             }

@@ -21,7 +21,7 @@ function extractProgram(fileName) {
         .replace(/^\[[^\]]+\]/, '') // 先頭の [字] などを削除 (二度目、Bashロジックに合わせる)
         .replace(/^【[^】]*】/, '') // 【夜ドラ】 などを削除
         .replace(/^＜[^＞]*＞/, '') 
-        .replace(/^[＃#]/, '') 
+//        .replace(/^[＃#]/, '') 
         .replace(/^時代劇[ \s]*/, '')
         .replace(/^映画の時間[ \s]*/, '')
         .replace(/^映画[ \s]*/, '')

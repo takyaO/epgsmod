@@ -875,7 +875,7 @@ function createConflictCard(lost, enemies) {
     let html = `
         <div style="margin-bottom:12px; padding-bottom:12px; border-bottom:1px dashed #ffcdd2;">
             <div style="font-weight:bold; color:#d9534f; font-size:0.95rem;">❌ 録画不可 (競合):</div>
-            <div style="font-size:1.05em; margin:6px 0;">${lost.name}</div>
+	    <div style="font-size:1.05em; margin:6px 0;">${escapeHtml(lost.name)}</div>
             <div style="font-size:0.85em; color:#666;">${formatTimeRange(lost.startAt, lost.endAt)}</div>
             <div style="margin-top:10px;">
                 <button onclick="deleteReserve(${lost.id}, '${lost.name}')" class="mini-btn" style="background:#666; color:white; width:auto;">予約取消</button>
@@ -889,7 +889,7 @@ function createConflictCard(lost, enemies) {
     enemies.forEach(enemy => {
         html += `
             <div style="background:white; padding:12px; border-radius:6px; margin-bottom:10px; border-left: 4px solid #28a745;">
-                <div style="font-weight:600;">${enemy.name}</div>
+	      <div style="font-weight:600;">${escapeHtml(enemy.name)}</div>
                 <div style="font-size:0.85em; color:#666; margin:5px 0;">${formatTimeRange(enemy.startAt, enemy.endAt)}</div>
                 <button onclick="deleteReserve(${enemy.id}, '${enemy.name}')" class="mini-btn" style="margin-top:8px; background:#d9534f; color:white; width:auto;">
                     🗑 この予約を削除して解決

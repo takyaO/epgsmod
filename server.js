@@ -11,9 +11,8 @@ const express = require('express');
 const axios = require('axios');
 const path = require('path');
 const app = express();
-
 const PORT = 3001;
-//const EPG_API_BASE = 'http://100.70.190.41:8888'; 
+const { URL } = require('url');
 
 app.use(express.json());
 
@@ -26,7 +25,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.post('/proxy/search', function(req, res) {
     // ★ 修正: クライアントのペイロードから EPG URLを取得
     const clientEpgApiBase = req.body.epgApiBase;
+    if (!isAllowedEpgApiBase(clientEpgApiBase)) {
+        console.error(`SSRF Risk Detected: ${clientEpgApiBase}`);
+        return res.status(403).json({ error: "指定されたEPG API URLは許可されていません。" });
+    }
     const bodyForEpgstation = { ...req.body };
+
     delete bodyForEpgstation.epgApiBase; // EPGStationへは渡さない
 
     if (!clientEpgApiBase) {
@@ -49,6 +53,10 @@ app.post('/proxy/search', function(req, res) {
 app.post('/proxy/rule', function(req, res) {
     // ★ 修正: クライアントのペイロードから EPG URLを取得
     const clientEpgApiBase = req.body.epgApiBase;
+    if (!isAllowedEpgApiBase(clientEpgApiBase)) {
+        console.error(`SSRF Risk Detected: ${clientEpgApiBase}`);
+        return res.status(403).json({ error: "指定されたEPG API URLは許可されていません。" });
+    }
     const bodyForEpgstation = { ...req.body };
     delete bodyForEpgstation.epgApiBase; // EPGStationへは渡さない
 
@@ -70,6 +78,10 @@ app.post('/proxy/rule', function(req, res) {
 app.post('/proxy/reserves', async (req, res) => {
     try {
         const { epgApiBase, type, limit } = req.body;
+	if (!isAllowedEpgApiBase(epgApiBase)) {
+            console.error(`SSRF Risk Detected in /proxy/rules: ${epgApiBase}`);
+            return res.status(403).json({ error: "指定されたEPG API URLは許可されていません。" });
+        }
         // EPGStationのAPIを叩くURLを構築
         const targetUrl = `${epgApiBase}/api/reserves?type=${type}&limit=${limit}&isHalfWidth=false`;
         
@@ -90,6 +102,10 @@ app.post('/proxy/reserves', async (req, res) => {
 app.post('/proxy/reserves/delete', async (req, res) => {
     try {
         const { epgApiBase, reserveId } = req.body;
+	if (!isAllowedEpgApiBase(epgApiBase)) {
+            console.error(`SSRF Risk Detected in /proxy/rules: ${epgApiBase}`);
+            return res.status(403).json({ error: "指定されたEPG API URLは許可されていません。" });
+        }
         const targetUrl = `${epgApiBase}/api/reserves/${reserveId}`;
         
         console.log(`Proxy deleting: ${targetUrl}`);
@@ -115,6 +131,10 @@ app.post('/proxy/reserves/delete', async (req, res) => {
 app.post('/proxy/rules', async (req, res) => {
     try {
         const { epgApiBase } = req.body;
+	if (!isAllowedEpgApiBase(epgApiBase)) {
+            console.error(`SSRF Risk Detected in /proxy/rules: ${epgApiBase}`);
+            return res.status(403).json({ error: "指定されたEPG API URLは許可されていません。" });
+        }
         
         console.log(`[Proxy] Fetching Rules & Reserves count...`);
 
@@ -164,6 +184,10 @@ app.post('/proxy/rules', async (req, res) => {
 app.post('/proxy/rules/delete', async (req, res) => {
     try {
         const { epgApiBase, ruleId } = req.body;
+	if (!isAllowedEpgApiBase(epgApiBase)) {
+            console.error(`SSRF Risk Detected in /proxy/rules: ${epgApiBase}`);
+            return res.status(403).json({ error: "指定されたEPG API URLは許可されていません。" });
+        }
         const targetUrl = `${epgApiBase}/api/rules/${ruleId}`;
         
         console.log(`[Proxy] Deleting Rule: ${targetUrl}`);
@@ -189,6 +213,10 @@ app.post('/proxy/rules/delete', async (req, res) => {
 app.post('/proxy/rules/add', async (req, res) => {
     try {
         const { epgApiBase, rulePayload } = req.body;
+	if (!isAllowedEpgApiBase(epgApiBase)) {
+            console.error(`SSRF Risk Detected in /proxy/rules: ${epgApiBase}`);
+            return res.status(403).json({ error: "指定されたEPG API URLは許可されていません。" });
+        }
         const targetUrl = `${epgApiBase}/api/rules`; // EPGStationのAPI URL
         
         console.log(`[Proxy] Adding Rule: ${targetUrl}`);
@@ -213,6 +241,60 @@ app.post('/proxy/rules/add', async (req, res) => {
     }
 });
 
+/**
+ * EPG API URLが安全な（プライベートネットワークまたは許可されたホスト）
+ * IPアドレスまたはホスト名を使用しているかチェックする。
+ * @param {string} url - クライアントから渡されたAPI URL
+ * @returns {boolean} - 許可されていれば true
+ */
+function isAllowedEpgApiBase(url) {
+    if (!url) return false;
+
+    try {
+        const parsedUrl = new URL(url);
+        const hostname = parsedUrl.hostname;
+
+        // 1. 許可するホスト名のリスト
+        const allowedHosts = [
+            'localhost',
+            '127.0.0.1',
+            // EPGStationの公式なホスト名などがあればここに追加
+        ];
+        if (allowedHosts.includes(hostname)) {
+            return true;
+        }
+
+        // 2. プライベートIPアドレス範囲のチェック (正規表現)
+        // 以下のプライベートIP範囲は、IETF RFC 1918 (IPv4) および IETF RFC 6890 (特別なアドレス) に基づいています。
+        
+        // 正規表現は文字列として定義
+        const privateIpRanges = [
+            // RFC 1918 (標準プライベートIP)
+            /^192\.168\./,       // Class C: 192.168.0.0/16
+            /^10\./,             // Class A: 10.0.0.0/8
+            /^172\.(1[6-9]|2[0-9]|3[0-1])\./, // Class B: 172.16.0.0/12
+            
+            // TailscaleのIP範囲 (CGNAT 100.64.0.0/10 の一部を使用)
+            /^100\.(6[4-9]|[7-9][0-9]|1[0-2][0-7])\./, // 100.64.0.0/10 (厳密には 100.64.0.0 から 100.127.255.255)
+                                                      // ここでは範囲の先頭部分をカバー
+            
+            // その他の特殊/ローカルループバック
+            /^127\./,            // ループバック: 127.0.0.0/8
+            /^(0|169\.254)\./,   // 0.0.0.0/8, 169.254.0.0/16 (Link-Local)
+        ];
+
+        // IPアドレスとして有効かチェック
+        if (privateIpRanges.some(regex => regex.test(hostname))) {
+            return true;
+        }
+
+    } catch (e) {
+        // URLが不正な形式の場合
+        console.error("URL解析エラー:", e.message);
+    }
+
+    return false;
+}
 
 // =========================
 // 起動

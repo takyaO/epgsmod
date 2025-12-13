@@ -1,9 +1,5 @@
-function extractProgram(filePath) {
-    // 1. BASENAMEの抽出 (path.basenameのような処理)
-    const parts = filePath.split(/[/\\]/); // スラッシュまたはバックスラッシュで分割
-    let BASENAME = parts[parts.length - 1];
-
-    // 2. 内部変数の初期化
+function extractProgram(fileName) {
+    let BASENAME = fileName;
     let PROGRAM = BASENAME;
     let EPISODE = "";
     

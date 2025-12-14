@@ -286,16 +286,16 @@
     }
 
     /* --- 親コンテナ: 強制的に横並びにする --- */
-.custom-input-row {
+    .custom-input-row {
     display: flex !important;
     flex-wrap: nowrap !important;
     align-items: center; /* 上下中央揃え */
     width: 100%;
     gap: 3px; /* 要素間の隙間を維持 */
-}
+    }
 
-/* --- 1. 入力欄: 残りのスペースを埋める (左端) --- */
-.custom-input-row input#epgApiUrl {
+    /* --- 1. 入力欄: 残りのスペースを埋める (左端) --- */
+    .custom-input-row input#epgApiUrl {
     flex-grow: 1 !important; /* 余白をすべて埋める */
     width: auto !important;
     min-width: 0;
@@ -305,10 +305,10 @@
     box-sizing: border-box;
     margin: 0;
     padding: 6px; 
-}
+    }
 
-/* --- 2. 共通ボタン設定: 幅20pxに固定 --- */
-.action-btn {
+    /* --- 2. 共通ボタン設定: 幅20pxに固定 --- */
+    .action-btn {
     /* 幅を20pxに固定 */
     flex: 0 0 20px !important; 
     width: 20px !important;
@@ -329,32 +329,32 @@
     display: flex;
     align-items: center;
     justify-content: center; /* ボタンの縦横中央に文字を配置 */
-}
+    }
 
-/* --- 2-1. ゴミ箱ボタン --- */
-.trash-btn {
+    /* --- 2-1. ゴミ箱ボタン --- */
+    .trash-btn {
     background-color: #dc3545; /* 赤系 */
     color: white;
     font-size: 1.0rem; /* アイコンサイズを維持 */
     line-height: 1; /* 行間を通常に戻す (アイコンのため) */
-}
+    }
 
-/* --- 2-2. 確認ボタン --- */
-.check-btn {
+    /* --- 2-2. 確認ボタン --- */
+    .check-btn {
     background-color: #6c757d; /* グレー系 */
     color: white;
-}
+    }
 
-/* --- 2-3. 保存ボタン --- */
-.save-btn {
+    /* --- 2-3. 保存ボタン --- */
+    .save-btn {
     background-color: #007bff; /* ブルー系 */
     color: white;
-}
+    }
 
-/* ホバーエフェクト */
-.trash-btn:hover { background-color: #c82333; }
-.check-btn:hover { background-color: #5a6268; }
-.save-btn:hover { background-color: #0069d9; }
+    /* ホバーエフェクト */
+    .trash-btn:hover { background-color: #c82333; }
+    .check-btn:hover { background-color: #5a6268; }
+    .save-btn:hover { background-color: #0069d9; }
 
 </style>
 </head>
@@ -401,6 +401,12 @@
           <input type="checkbox" id="filterNewCheck" onchange="filterNewOnly()">
             ［新］のみ表示
         </label>
+        
+        <label style="display:flex; align-items:center; gap:6px; font-size:0.9rem; white-space: nowrap;">
+            <input type="checkbox" id="sortTimeCheck" onchange="filterNewOnly()">
+            時刻順
+        </label>
+
         <label style="display:flex; align-items:center; gap:6px; font-size:0.9rem; white-space: nowrap;">
             <input type="checkbox" id="noExtractCheck">
             抽出処理省略
@@ -748,16 +754,40 @@ function filterNewOnly() {
 
     if (!Array.isArray(originalProgramList)) return;
 
-    const filter = document.getElementById('filterNewCheck').checked;
+    // チェック状態を取得
+    const filterNew = document.getElementById('filterNewCheck').checked;
+    const sortTime = document.getElementById('sortTimeCheck').checked;
 
-    let filtered = originalProgramList;
-    if (filter) {
-        filtered = originalProgramList.filter(x => {
+    // 元の配列をコピーして操作用配列を作成
+    let filtered = [...originalProgramList];
+
+    // 1. フィルタリング処理 ([新]のみなど)
+    if (filterNew) {
+        filtered = filtered.filter(x => {
             const n = x && x.name ? x.name : "";
             return n.includes("［新］") || n.includes("[新]");
         });
     }
 
+    // 2. ソート処理 (時刻順 または 名前順)
+    if (sortTime) {
+        // 時刻順 (古い順)
+        filtered.sort((a, b) => {
+            const timeA = a.startAt || 0;
+            const timeB = b.startAt || 0;
+            return timeA - timeB;
+        });
+    } else {
+        // ★追加: 名前順 (あいうえお順)
+        // チェックがない場合は名前でソートして戻す
+        filtered.sort((a, b) => {
+            const nameA = a.name || "";
+            const nameB = b.name || "";
+            return nameA.localeCompare(nameB, "ja");
+        });
+    }
+
+    // 3. リストへの追加処理
     const wdayList = ['日', '月', '火', '水', '木', '金', '土'];
 
     filtered.forEach(p => {
@@ -782,7 +812,7 @@ function filterNewOnly() {
         op.textContent = startTime ? `[${startTime}] ${p.name}` : p.name;
         listBox.appendChild(op);
     });
-}
+}      
 
 function selectProgram() {
     // 1. 選択された <option> の value (rawName) を取得

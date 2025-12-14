@@ -510,6 +510,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ====================================================================
 
 const genreMap = {
+    '-1': "すべて",
     0:"ニュース",1:"スポーツ",2:"情報",3:"ドラマ",
     4:"音楽",5:"バラエティ",6:"映画",7:"アニメ/特撮",
     8:"ドキュメンタリー",9:"劇場/公演",10:"趣味/教育",11:"福祉"
@@ -523,27 +524,31 @@ function log(msg){
 }
 
 async function searchSchedules(){
-    const genreId = Number(genreSelect.value);
+    const genreId = Number(document.getElementById('genreSelect').value);
 
     // ★ プルダウンの limit を取得
     const limit = Number(document.getElementById('limitSelect').value);
 
+    // 検索オプションオブジェクトを準備
+    const searchOption = {
+        keyword: "",
+        name: true, description: true, extended: true,
+        GR: true, BS: true, CS: true, SKY: true,
+        // subGenre を外す（任意扱い）
+    };
+
+    if (genreId !== -1) {
+        searchOption.genres = [{ genre: genreId }];
+    }
+
     const payload = {
         epgApiBase: EPG_API_BASE,
         isHalfWidth: false,
-        option: {
-            keyword: "",
-            name: true, description: true, extended: true,
-            GR: true, BS: true, CS: true, SKY: true,
-
-            // subGenre を外す（任意扱い）
-            genres: [{ genre: genreId }]
-        },
-
+        option: searchOption, // 修正した searchOption を使用
         // ★ 選択された limit を反映
         limit: limit
     };
-
+    
     try {
         const res = await fetch('/proxy/search', {
             method: 'POST',

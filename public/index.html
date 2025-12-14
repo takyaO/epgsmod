@@ -285,52 +285,77 @@
         }
     }
 
-/* 1. ROW内のボタンコンテナを縦積みに変更 */
-.double-button-group {
-    display: flex;
-    flex-direction: column; /* 縦積み */
-    
-    /* ★★★ 修正: 横幅を極小に固定 ★★★ */
-    width: 50px; 
-    flex-shrink: 0; 
-    gap: 2px; /* ボタン間にわずかな隙間を追加 */
+    /* --- 親コンテナ: 強制的に横並びにする --- */
+.custom-input-row {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center; /* 上下中央揃え */
+    width: 100%;
+    gap: 3px; /* 要素間の隙間を維持 */
 }
 
-/* 2. 二つのボタンの幅を均等にする */
-.double-button-group button {
-    /* 縦積みなので flex-grow は不要だが、幅を100%に指定 */
-    width: 100%; 
+/* --- 1. 入力欄: 残りのスペースを埋める (左端) --- */
+.custom-input-row input#epgApiUrl {
+    flex-grow: 1 !important; /* 余白をすべて埋める */
+    width: auto !important;
+    min-width: 0;
+    
+    height: 35px; /* ボタンと高さを揃える */
+    
+    box-sizing: border-box;
+    margin: 0;
+    padding: 6px; 
+}
+
+/* --- 2. 共通ボタン設定: 幅20pxに固定 --- */
+.action-btn {
+    /* 幅を20pxに固定 */
+    flex: 0 0 20px !important; 
+    width: 20px !important;
+    height: 35px; /* 高さを揃える */
+    
+    padding: 0;
     margin: 0;
     
-    /* ★★★ 修正: パディングとフォントサイズを再調整 ★★★ */
-    padding: 3px 0px; /* 上下のパディングを減らす */
-    font-size: 0.75rem; /* 文字サイズをさらに小さくし、50pxの幅に収める */
+    /* 文字サイズを調整 (縦書きに合わせた調整) */
+    font-size: 0.7rem; 
+    line-height: 0.9; /* 行間を詰める */
     
-    cursor: pointer;
     border: none;
-    box-sizing: border-box;
-}
-
-/* 3. 角丸の調整 (縦積み用の角丸に変更) */
-/* 上側のボタン (確認) */
-.double-button-group .left-btn {
-    border-radius: 4px; 
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0; /* 下のボタンと接する角を直角に */
-    
-    background-color: #6c757d; 
-    color: white;
-}
-
-/* 下側のボタン (保存) */
-.double-button-group .right-btn {
     border-radius: 4px;
-    border-top-left-radius: 0;
-    border-top-right-radius: 0; /* 上のボタンと接する角を直角に */
+    cursor: pointer;
+    box-sizing: border-box;
+    
+    display: flex;
+    align-items: center;
+    justify-content: center; /* ボタンの縦横中央に文字を配置 */
+}
 
-    background-color: #007bff; 
+/* --- 2-1. ゴミ箱ボタン --- */
+.trash-btn {
+    background-color: #dc3545; /* 赤系 */
+    color: white;
+    font-size: 1.0rem; /* アイコンサイズを維持 */
+    line-height: 1; /* 行間を通常に戻す (アイコンのため) */
+}
+
+/* --- 2-2. 確認ボタン --- */
+.check-btn {
+    background-color: #6c757d; /* グレー系 */
     color: white;
 }
+
+/* --- 2-3. 保存ボタン --- */
+.save-btn {
+    background-color: #007bff; /* ブルー系 */
+    color: white;
+}
+
+/* ホバーエフェクト */
+.trash-btn:hover { background-color: #c82333; }
+.check-btn:hover { background-color: #5a6268; }
+.save-btn:hover { background-color: #0069d9; }
+
 </style>
 </head>
 <body>
@@ -339,14 +364,19 @@
 
 <div class="card">
     <h3>🌐 EPGStation設定</h3>
-    <div class="row">
-        <input type="url" id="epgApiUrl" value="http://localhost:8888" placeholder="例: http://localhost:8888">
+    
+    <div class="custom-input-row">
         
-        <div class="double-button-group">
-            <button onclick="checkApiUrl()" class="left-btn">確認</button>
-            <button onclick="saveApiUrl()" class="right-btn">保存</button>
-        </div>
-        </div>
+        <input type="url" id="epgApiUrl" list="urlHistoryList" placeholder="例: http://localhost:8888">
+        <datalist id="urlHistoryList"></datalist>
+        
+        <button onclick="deleteCurrentHistory()" class="action-btn trash-btn" title="履歴から削除">🗑️</button>
+        
+        <button onclick="checkApiUrl()" class="action-btn check-btn" title="API接続確認">確<br>認</button>
+        
+        <button onclick="saveApiUrl()" class="action-btn save-btn" title="URLを保存">保<br>存</button>
+        
+    </div>
 </div>
 
 <div class="card">
@@ -447,9 +477,16 @@
 // ▼▼▼ API URL管理のための変数の定義と関数の追加 ▼▼▼
 // ====================================================================
 
-// APIベースURLを保持するグローバル変数
-let EPG_API_BASE = 'http://localhost:8888';
-let originalProgramList = [];
+// グローバル変数
+let EPG_API_BASE = '';
+const HISTORY_KEY = 'epgApiUrlHistory'; // 履歴保存用のキー
+const CURRENT_URL_KEY = 'epgApiUrl';    // 現在設定用のキー
+
+// 初期化処理：ページ読み込み時に実行してください
+document.addEventListener('DOMContentLoaded', () => {
+    loadApiUrl();
+    updateDatalist();
+});
 
 function checkApiUrl() {
     const inputElement = document.getElementById('epgApiUrl');
@@ -461,26 +498,106 @@ function checkApiUrl() {
     }
 
     try {
-        // URLとして有効か確認
         new URL(url);
         log(`API URL確認: ${url} にジャンプします`);
-        window.open(url, '_blank'); // 新しいタブで開く
+        window.open(url, '_blank');
     } catch (e) {
         log(`API URL確認エラー: ${url} は無効なURLです。`);
         alert("入力されたURLが不正な形式です。HTTPまたはHTTPSで始まる有効なURLを入力してください。");
     }
 }
 
-// URL入力欄の値を読み込み、変数とLocalStorageに保存する関数
+// 保存ボタン：設定を適用し、履歴に追加
 function saveApiUrl() {
     const inputElement = document.getElementById('epgApiUrl');
-    // 末尾のスラッシュを削除し、変数に格納
-    EPG_API_BASE = inputElement.value.trim().replace(/\/$/, '');
+    const newUrl = inputElement.value.trim().replace(/\/$/, '');
+
+    if (!newUrl) {
+        alert("URLが空です");
+        return;
+    }
+
+    // 1. 現在の設定として保存
+    EPG_API_BASE = newUrl;
+    localStorage.setItem(CURRENT_URL_KEY, EPG_API_BASE);
+
+    // 2. 履歴に追加 (重複排除して先頭に追加)
+    let history = getHistory();
+    // 既に存在する場合は一旦削除（順序を先頭に持ってくるため）
+    history = history.filter(item => item !== newUrl);
+    history.unshift(newUrl);
+    
+    // 履歴を保存
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+
+    // UI更新
+    updateDatalist();
+    
     alert(`EPGStation API URLを ${EPG_API_BASE} に設定しました。`);
-    // LocalStorageに保存
-    localStorage.setItem('epgApiUrl', EPG_API_BASE);
     log(`API URL設定: ${EPG_API_BASE}`);
 }
+
+// 削除ボタン：現在入力欄にある値を履歴から削除
+function deleteCurrentHistory() {
+    const inputElement = document.getElementById('epgApiUrl');
+    const targetUrl = inputElement.value.trim().replace(/\/$/, '');
+
+    if (!targetUrl) return;
+
+    let history = getHistory();
+    const initialLength = history.length;
+    
+    // 履歴から削除
+    history = history.filter(item => item !== targetUrl);
+
+    if (history.length < initialLength) {
+        // 変更があった場合のみ保存・更新
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+        updateDatalist();
+        inputElement.value = ''; // 入力欄をクリア
+        alert(`履歴から削除しました: ${targetUrl}`);
+    } else {
+        alert("履歴に存在しないURLです。");
+    }
+}
+
+// 内部関数：LocalStorageから履歴配列を取得
+function getHistory() {
+    const json = localStorage.getItem(HISTORY_KEY);
+    try {
+        return json ? JSON.parse(json) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+// 内部関数：datalistのDOMを更新
+function updateDatalist() {
+    const history = getHistory();
+    const dataList = document.getElementById('urlHistoryList');
+    dataList.innerHTML = ''; // リセット
+
+    history.forEach(url => {
+        const option = document.createElement('option');
+        option.value = url;
+        dataList.appendChild(option);
+    });
+}
+
+// 内部関数：起動時に保存された値を復元
+function loadApiUrl() {
+    // 最後に保存した設定値を入力欄に入れる
+    const current = localStorage.getItem(CURRENT_URL_KEY);
+    if (current) {
+        EPG_API_BASE = current;
+        document.getElementById('epgApiUrl').value = current;
+    }
+}
+
+// 簡易ログ用（既存コードにlog関数がない場合のダミー）
+if (typeof log === 'undefined') {
+    window.log = console.log;
+} 
 
 // ページ読み込み時の処理
 document.addEventListener('DOMContentLoaded', () => {

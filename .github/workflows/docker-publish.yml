@@ -16,9 +16,23 @@ jobs:
     steps:
       - name: Set current date for BUILD_DATE
         id: date
-        run: echo "BUILD_DATE=$(date -u +'%Y-%m-%d')" >> $GITHUB_ENV
+        # 日付フォーマットを調整 (必要に応じて時刻も含む形式に)
+        run: echo "BUILD_DATE=$(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_ENV 
+
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      # ★★★ 追加ステップ: HTMLファイル内のプレースホルダーを置換する ★★★
+      - name: Replace Build Date in HTML
+        # sedコマンドで index.html を編集し、プレースホルダーを実際のBUILD_DATEの値に置換する
+        # sed の区切り文字として @ を使用し、日付文字列に含まれる可能性のある / の問題を回避
+        run: |
+          BUILD_DATE_VALUE="${{ env.BUILD_DATE }}"
+          # プレースホルダー ${BUILD_DATE_PLACEHOLDER} を実際の値に置換
+          sed -i "s@\${BUILD_DATE_PLACEHOLDER}@$BUILD_DATE_VALUE@g" index.html
+        env:
+          # HTML内のプレースホルダー文字列をここで定義 (DockerfileのARGとは別)
+          PLACEHOLDER: '${BUILD_DATE_PLACEHOLDER}' 
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -36,4 +50,6 @@ jobs:
           context: .
           push: true
           tags: ghcr.io/takyao/epgsmod:latest
-
+          # ENVに埋め込むための BUILD_DATE 引数も渡しておくと、ログなどで便利です
+          build-args: |
+            BUILD_DATE=${{ env.BUILD_DATE }}

@@ -79,23 +79,36 @@ app.post('/proxy/rule', function(req, res) {
 // 1. 予約リスト取得用プロキシ
 app.post('/proxy/reserves', async (req, res) => {
     try {
-        const { epgApiBase, type, limit } = req.body;
-	if (!isAllowedEpgApiBase(epgApiBase)) {
-            console.error(`SSRF Risk Detected in /proxy/rules: ${epgApiBase}`);
+        const {
+            epgApiBase,
+            startAt,
+            endAt,
+            type,
+            isHalfWidth = false
+        } = req.body;
+
+        if (!isAllowedEpgApiBase(epgApiBase)) {
+            console.error(`SSRF Risk Detected in /proxy/reserves: ${epgApiBase}`);
             return res.status(403).json({ error: "指定されたEPG API URLは許可されていません。" });
         }
-        // EPGStationのAPIを叩くURLを構築
-        const targetUrl = `${epgApiBase}/api/reserves?type=${type}&limit=${limit}&isHalfWidth=false`;
-        
-        console.log(`Proxy fetching: ${targetUrl}`);
-        
-        // ★ axios.get を使用
+
+        const params = new URLSearchParams({
+            isHalfWidth: isHalfWidth,
+        });
+
+        if (startAt) params.append('startAt', startAt);
+        if (endAt)   params.append('endAt', endAt);
+        if (type)    params.append('type', type); // ★追加
+
+        const targetUrl = `${epgApiBase}/api/reserves?${params.toString()}`;
+
+        console.log(`Proxy fetching reserves: ${targetUrl}`);
+
         const apiRes = await axios.get(targetUrl);
-        
+
         res.json(apiRes.data);
     } catch (error) {
-        console.error("Proxy Error:", error.message);
-        // axiosのエラーは error.response.status でステータスを取得できる場合がある
+        console.error("Proxy reserves Error:", error.message);
         res.status(500).json({ error: error.message });
     }
 });

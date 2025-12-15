@@ -2405,7 +2405,8 @@ async function checkConflicts() {
         // 2. 有効な予約を取得 (Proxy経由)
         const activeData = await fetchReservesViaProxy(apiUrl, 'normal');
 
-        const lostReserves = conflictData.reserves || [];
+	const lostReserves = (conflictData.reserves || [])
+	.filter(r => r.isConflict === true); 
         const keptReserves = activeData.reserves || [];
 
         listDiv.innerHTML = ''; // クリア
@@ -2419,7 +2420,8 @@ async function checkConflicts() {
         // 3. マッチング処理と表示 (ここは変更なし)
         let count = 0;
         lostReserves.forEach(lost => {
-            const enemies = keptReserves.filter(kept => {
+        const enemies = keptReserves.filter(kept => {
+	if (kept.id === lost.id) return false;
                 return (lost.startAt < kept.endAt) && (lost.endAt > kept.startAt);
             });
 

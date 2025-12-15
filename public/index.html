@@ -482,6 +482,9 @@
     <h3>📋 ログ</h3>
     <div id="log">Ready...</div>
 </div>
+<footer>
+  <p><span id="buildDateDisplay"></span></p>
+</footer>
 
 <script src="extractProgram.js"></script>
 <script>
@@ -2757,6 +2760,17 @@ async function deleteRule(ruleId) {
     }
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+    const buildDateElement = document.getElementById('buildDateDisplay');
+    
+    // サーバーサイドから環境変数が渡されていることを前提とします
+    const buildDate = window.IMAGE_BUILT_AT || 'N/A';
+    
+    // 表示処理
+    if (buildDateElement) {
+        buildDateElement.textContent = buildDate;
+    }
+});  
 </script>
 </body>
 </html>

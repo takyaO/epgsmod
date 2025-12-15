@@ -14,6 +14,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Set current date for BUILD_DATE
+        id: date
+        run: echo "BUILD_DATE=$(date -u +'%Y-%m-%d')" >> $GITHUB_ENV
       - name: Checkout repository
         uses: actions/checkout@v4
 

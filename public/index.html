@@ -482,10 +482,6 @@
     <h3>📋 ログ</h3>
     <div id="log">Ready...</div>
 </div>
-<footer>
-    <span id="serverBuildDate" style="display:none;">${BUILD_DATE_ISO}</span> 
-    <p>構築年月日: <span id="buildDateDisplay"></span></p>
-</footer>
 
 <script src="extractProgram.js"></script>
 <script>
@@ -2760,18 +2756,6 @@ async function deleteRule(ruleId) {
         log(`ルール削除失敗: ${e.message}`);
     }
 }
-document.addEventListener('DOMContentLoaded', () => {
-    // 隠されたspanからテキスト内容を取得
-    const rawDateText = document.getElementById('serverBuildDate').textContent.trim();
-    const buildDateElement = document.getElementById('buildDateDisplay');
-    
-    // 'built: ' などの余計な文字列が含まれないよう注意
-    const buildDate = (rawDateText && rawDateText !== '${BUILD_DATE_ISO}') ? rawDateText : 'N/A';
-    
-    if (buildDateElement) {
-        buildDateElement.textContent = buildDate;
-    }
-});
 </script>
 </body>
 </html>

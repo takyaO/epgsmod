@@ -84,6 +84,7 @@ app.post('/proxy/reserves', async (req, res) => {
             startAt,
             endAt,
             type,
+	    limit,
             isHalfWidth = false
         } = req.body;
 
@@ -98,7 +99,8 @@ app.post('/proxy/reserves', async (req, res) => {
 
         if (startAt) params.append('startAt', startAt);
         if (endAt)   params.append('endAt', endAt);
-        if (type)    params.append('type', type); // ★追加
+        if (type)    params.append('type', type); 
+        if (limit)    params.append('limit', limit); 
 
         const targetUrl = `${epgApiBase}/api/reserves?${params.toString()}`;
 

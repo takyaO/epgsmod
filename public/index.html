@@ -2615,9 +2615,12 @@ async function fetchRules() {
     listDiv.innerHTML = '<p>ルールを取得中...</p>';
 
     try {
-        const payload = { epgApiBase: apiUrl };
+        // ★ limit: 0 (全件取得) を追加
+        const payload = { 
+            epgApiBase: apiUrl,
+            limit: 0 
+        };
 
-        // Proxy経由でルール取得
         const res = await fetch('/proxy/rules', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

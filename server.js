@@ -145,29 +145,32 @@ app.post('/proxy/reserves/delete', async (req, res) => {
 });
 
 // 4. ルール一覧取得用プロキシ (予約数カウント機能付き)
+// 4. ルール一覧取得用プロキシ
 app.post('/proxy/rules', async (req, res) => {
     try {
-        const { epgApiBase } = req.body;
-	if (!isAllowedEpgApiBase(epgApiBase)) {
-            console.error(`SSRF Risk Detected in /proxy/rules: ${epgApiBase}`);
-            return res.status(403).json({ error: "指定されたEPG API URLは許可されていません。" });
-        }
-        
-        console.log(`[Proxy] Fetching Rules & Reserves count...`);
+        // ★ req.body から limit を受け取る (デフォルトは全件の 0 に設定)
+        const { epgApiBase, limit = 0 } = req.body;
 
-        // ルール一覧と、予約一覧(全件取得に近い状態)を並列で取得
+        if (!isAllowedEpgApiBase(epgApiBase)) {
+            console.error(`SSRF Risk Detected: ${epgApiBase}`);
+            return res.status(403).json({ error: "許可されていません。" });
+        }
+
+        console.log(`[Proxy] Fetching Rules (limit=${limit}) & Reserves count...`);
+
+        // ルール一覧と予約一覧を並列で取得
         const [rulesRes, reservesRes] = await Promise.all([
-            // 1. ルール取得: limit=0 (全件)
-            axios.get(`${epgApiBase}/api/rules?limit=0`),
-            
-            // 2. 予約取得: limit=9999, type=normal に加え、isHalfWidth=true を追加 ★★★
-            axios.get(`${epgApiBase}/api/reserves?limit=9999&type=normal&isHalfWidth=true`) 
+            // ★ 固定の limit=0 ではなく、受け取った limit を使用
+            axios.get(`${epgApiBase}/api/rules?limit=${limit}`),
+
+            // 予約の方は集計用なので、引き続き十分に大きな値を指定
+            axios.get(`${epgApiBase}/api/reserves?limit=9999&type=normal&isHalfWidth=true`)
         ]);
 
         const rules = rulesRes.data.rules || rulesRes.data;
         const reserves = reservesRes.data.reserves || reservesRes.data;
 
-        // --- 集計処理 ---
+        // --- 以下、既存の集計処理と同じ ---
         const countMap = {};
         reserves.forEach(r => {
             if (r.ruleId) {
@@ -175,25 +178,16 @@ app.post('/proxy/rules', async (req, res) => {
             }
         });
 
-        // ルールリストに reservesCnt を付与して新しい配列を作成
-        const enrichedRules = rules.map(rule => {
-            return {
-                ...rule,
-                reservesCnt: countMap[rule.id] || 0
-            };
-        });
+        const enrichedRules = rules.map(rule => ({
+            ...rule,
+            reservesCnt: countMap[rule.id] || 0
+        }));
 
-        // クライアントへ返す
         res.json({ rules: enrichedRules });
-        
+
     } catch (error) {
         console.error("Proxy Rules Error:", error.message);
-        
-        if (axios.isAxiosError(error) && error.response) {
-             res.status(error.response.status).json({ error: error.response.data.message || error.message });
-        } else {
-            res.status(500).json({ error: error.message });
-        }
+        res.status(500).json({ error: error.message });
     }
 });
 

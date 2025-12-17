@@ -2399,14 +2399,29 @@ async function checkConflicts() {
     logDiv.innerText = '競合情報を取得しています(Proxy経由)...';
 
     try {
-        // 1. 競合で落ちた予約を取得 (Proxy経由)
+        // 1. 競合で落ちた予約を取得
         const conflictData = await fetchReservesViaProxy(apiUrl, 'conflict');
 
-        // 2. 有効な予約を取得 (Proxy経由)
+        // 2. 有効な予約を取得
         const activeData = await fetchReservesViaProxy(apiUrl, 'normal');
 
-	const lostReserves = (conflictData.reserves || [])
-	.filter(r => r.isConflict === true); 
+        // ★★★ 修正1: 「番組ID」を使って強力に重複排除 ★★★
+        const rawLostReserves = (conflictData.reserves || []).filter(r => r.isConflict === true);
+        
+        const lostMap = new Map();
+        rawLostReserves.forEach(r => {
+            // programId（番組識別子）があればそれをキーにする
+            // ない場合（手動予約の一部など）は 開始時刻+番組名 をキーにする
+            const key = r.programId ? `prog-${r.programId}` : `time-${r.startAt}-${r.name}`;
+            
+            // まだMapになければ追加（これで同一番組の重複IDは無視される）
+            if (!lostMap.has(key)) {
+                lostMap.set(key, r);
+            }
+        });
+        const lostReserves = Array.from(lostMap.values());
+        // ★★★★★★★★★★★★★★★★★★★★★★★★★★★
+
         const keptReserves = activeData.reserves || [];
 
         listDiv.innerHTML = ''; // クリア
@@ -2417,12 +2432,26 @@ async function checkConflicts() {
             return;
         }
 
-        // 3. マッチング処理と表示 (ここは変更なし)
+        // 3. マッチング処理
         let count = 0;
         lostReserves.forEach(lost => {
-        const enemies = keptReserves.filter(kept => {
-	if (kept.id === lost.id) return false;
-                return (lost.startAt < kept.endAt) && (lost.endAt > kept.startAt);
+            const lostStart = Number(lost.startAt);
+            const lostEnd   = Number(lost.endAt);
+
+            const enemies = keptReserves.filter(kept => {
+                // IDが同じなら除外
+                if (kept.id === lost.id) return false;
+
+                // ★★★ 修正2: もし「有効な予約」の中に「自分と同じ番組」があれば除外 ★★★
+                // (別チューナーや別ルールで録画成功している場合、それは敵ではないため)
+                if (lost.programId && kept.programId && lost.programId === kept.programId) {
+                    return false;
+                }
+
+                const keptStart = Number(kept.startAt);
+                const keptEnd   = Number(kept.endAt);
+
+                return (lostStart < keptEnd) && (lostEnd > keptStart);
             });
 
             if (enemies.length > 0) {

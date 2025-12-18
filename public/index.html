@@ -1133,45 +1133,45 @@ function createConflictCard(lost, enemies, apiUrl) {
     const container = document.createElement('div');
     container.style.cssText = "border:1px solid #ffcdd2; padding:15px; margin-bottom:12px; border-radius:6px; background-color:#fff5f5;";
 
-    // 変換した時刻を取得
     const lostTimeStr = formatEpgTime(lost.startAt);
 
-    // A. 録画できなかった番組
+    // A. 録画できなかった番組 (上のブロック)
     let html = `
         <div style="margin-bottom:12px; padding-bottom:12px; border-bottom:1px dashed #ffcdd2;">
             <div style="font-weight:bold; color:#d9534f; font-size:0.95rem;">❌ 録画不可 (競合):</div>
             <div style="font-size:1.05em; margin:6px 0;">${escapeHtml(lost.name)}</div>
             <div style="font-size:0.85em; color:#666;">${formatTimeRange(lost.startAt, lost.endAt)}</div>
-            <div style="margin-top:10px;">
-                <button onclick="deleteReserve(${lost.id}, '${lost.name}')" class="mini-btn" style="background:#666; color:white; width:auto;">予約取消</button>
-                
+            <div style="margin-top:10px; display:flex; gap:8px;">
+                <button onclick="deleteReserve(${lost.id}, '${lost.name}')" class="mini-btn" style="background:#666; color:white; flex:1;">予約取消</button>
                 <button onclick="window.open('${apiUrl}/#/guide?time=${lostTimeStr}', '_blank')" 
                         class="mini-btn" 
-                        style="background:#007bff; color:white; width:auto; margin-left:8px;">
+                        style="background:#007bff; color:white; flex:1;">
                     📅 番組表
                 </button>
             </div>
         </div>
     `;
 
-    // B. 原因の番組
+    // B. 原因の番組 (下のブロック)
     html += `<div style="font-weight:bold; color:#28a745; margin-bottom:8px; font-size:0.95rem;">✅ 優先された予約 (原因):</div>`;
 
     enemies.forEach(enemy => {
-        const enemyTimeStr = formatEpgTime(enemy.startAt); // 原因側の時刻も変換
+        const enemyTimeStr = formatEpgTime(enemy.startAt);
         html += `
             <div style="background:white; padding:12px; border-radius:6px; margin-bottom:10px; border-left: 4px solid #28a745;">
               <div style="font-weight:600;">${escapeHtml(enemy.name)}</div>
                 <div style="font-size:0.85em; color:#666; margin:5px 0;">${formatTimeRange(enemy.startAt, enemy.endAt)}</div>
                 
                 <div style="margin-top:8px; display:flex; gap:8px;">
-                    <button onclick="deleteReserve(${enemy.id}, '${enemy.name}')" class="mini-btn" style="background:#d9534f; color:white; width:auto;">
-                        🗑 この予約を削除して解決
+                    <button onclick="deleteReserve(${enemy.id}, '${enemy.name}')" 
+                            class="mini-btn" 
+                            style="background:#d9534f; color:white; flex: 2;">
+                        🗑 予約削除
                     </button>
                     
                     <button onclick="window.open('${apiUrl}/#/guide?time=${enemyTimeStr}', '_blank')" 
                             class="mini-btn" 
-                            style="background:#007bff; color:white; width:auto;">
+                            style="background:#007bff; color:white; flex: 1;">
                         📅 番組表
                     </button>
                 </div>

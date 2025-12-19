@@ -479,6 +479,18 @@
 </div>
 
 <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3>6. 予約一覧</h3>
+        <button onclick="loadReserveList()" class="mini-btn" style="width:auto; background:#17a2b8; color:white;">
+            🔄 更新
+        </button>
+    </div>
+    <div id="reserveList" style="max-height: 400px; overflow-y: auto; border: 1px solid #eee; border-radius: 4px; margin-top: 10px;">
+        <p style="color:#666; text-align:center; padding:10px;">「更新」ボタンを押して予約情報を読み込んでください。</p>
+    </div>
+</div>
+
+<div class="card">
     <h3>📋 ログ</h3>
     <div id="log">Ready...</div>
 </div>
@@ -1051,15 +1063,17 @@ async function checkConflicts() {
 
 /**
  * プロキシ経由で予約リストを取得するヘルパー関数
- */
+*/
+	
 async function fetchReservesViaProxy(epgApiBase, type) {
+    // type が 'reserves' の場合は limit や type パラメータを送らないように制御
+    const isNormalReserves = (type === 'reserves');
     const limit = type === 'conflict' ? 50 : 2000;
 
-    // 検索機能と同じ形式でペイロードを作成
     const payload = {
         epgApiBase: epgApiBase,
-        type: type,
-        limit: limit
+        // type が 'reserves' 以外の場合のみ type と limit を含める
+        ...(isNormalReserves ? {} : { type: type, limit: limit })
     };
 
     const res = await fetch('/proxy/reserves', {
@@ -1074,6 +1088,7 @@ async function fetchReservesViaProxy(epgApiBase, type) {
     }
     return await res.json();
 }
+
 /**
  * 文字列に含まれるHTML特殊文字をエスケープする
  */
@@ -1394,6 +1409,55 @@ async function deleteRule(ruleId) {
         log(`ルール削除失敗: ${e.message}`);
     }
 }
+// 「6. 予約一覧」を表示するためのメイン関数
+async function loadReserveList() {
+    const listDiv = document.getElementById('reserveList');
+    const apiUrl = document.getElementById('epgApiUrl').value.replace(/\/$/, '');
+    
+    listDiv.innerHTML = '<p style="text-align:center; padding:10px;">読み込み中...</p>';
+
+    try {
+        const data = await fetchReservesViaProxy(apiUrl, 'reserves');
+        
+        // ★ 修正：isSkip が true（除外済み）ではないものだけを抽出する
+        const reserves = (data.reserves || []).filter(res => !res.isSkip);
+
+        if (reserves.length === 0) {
+            listDiv.innerHTML = '<p style="text-align:center; padding:10px;">有効な予約はありません。</p>';
+            return;
+        }
+
+        let html = '<table style="width:100%; border-collapse:collapse; font-size:0.9em;">';
+	// loadReserveList関数内の loop 部分を以下に差し替えてください
+
+	reserves.forEach(res => {
+	    // 時刻の整形 (月/日 時:分)
+	    const start = new Date(res.startAt);
+	    const timeStr = `${start.getMonth()+1}/${start.getDate()} ${start.getHours()}:${String(start.getMinutes()).padStart(2, '0')}`;
+    
+	    html += `
+    <tr style="border-bottom:1px solid #eee;">
+        <td style="padding:8px 4px;">
+            <div style="font-weight:bold;">${res.name}</div>
+            <div style="font-size:0.8em; color:#666;">${timeStr}</div>
+        </td>
+        <td style="width:50px; text-align:right;">
+            <button onclick="deleteReserve(${res.id}, '${res.name.replace(/'/g, "\\'")}')" 
+                    style="background:#dc3545; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">
+                削除
+            </button>
+        </td>
+    </tr>`;
+	});
+        html += '</table>';
+        listDiv.innerHTML = html;
+
+    } catch (error) {
+        console.error('Fetch error:', error);
+        listDiv.innerHTML = `<p style="color:red; text-align:center; padding:10px;">取得失敗: ${error.message}</p>`;
+    }
+}
+
 </script>
 </body>
 </html>

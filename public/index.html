@@ -448,6 +448,10 @@
             <input type="checkbox" id="allowDuplicateCheck">
             重複許可
         </label>
+        <label style="display:flex; align-items:center; gap:6px; font-size:0.9rem; white-space: nowrap;">
+            <input type="checkbox" id="keyRegExpCheck">
+            正規表現
+        </label>
     </div>
 
     <button onclick="addRule()">
@@ -861,8 +865,9 @@ async function addRule() {
     const keyword = document.getElementById('keywordInput').value.trim();
     const ignoreRebroadcastChecked = document.getElementById('ignoreRebroadcastCheck').checked;
     const includeDescChecked = document.getElementById('includeDescCheck').checked;
-    // ★ 追加: 重複許可チェックボックスの状態を取得
     const allowDuplicateChecked = document.getElementById('allowDuplicateCheck').checked;
+    // ★ 追加: 正規表現チェックボックスの状態を取得
+    const keyRegExpChecked = document.getElementById('keyRegExpCheck').checked;
 
     if (!keyword) return alert("キーワードを入力");
 
@@ -872,17 +877,19 @@ async function addRule() {
         return;
     }
 
-    // 確認メッセージにも状態を表示
     const descMsg = includeDescChecked ? "あり" : "なし";
-    // ★ 修正: 確認メッセージに重複許可の状態を追加
     const duplicateMsg = allowDuplicateChecked ? "許可" : "回避";
+    // ★ 修正: 確認メッセージに正規表現の状態を追加
+    const regexMsg = keyRegExpChecked ? "有効" : "無効";
     
-    if (!confirm(`「${keyword}」\n(除外:[再]: ${ignoreRebroadcastChecked} / 概要・詳細: ${descMsg} / 重複: ${duplicateMsg})\nをルール追加しますか？`)) return;
+    if (!confirm(`「${keyword}」\n(除外:[再]: ${ignoreRebroadcastChecked} / 概要・詳細: ${descMsg} / 重複: ${duplicateMsg} / 正規表現: ${regexMsg})\nをルール追加しますか？`)) return;
 
     // 検索オプションの作成
     const searchOption = {
         keyword: keyword,
         name: true,
+        // ★ 追加: 正規表現フラグを設定
+        keyRegExp: keyRegExpChecked,
         
         description: includeDescChecked,
         extended: includeDescChecked,
@@ -911,13 +918,12 @@ async function addRule() {
         reserveOption: {
             enable: true,
             allowEndLack: false,
-            // ★ 修正: 重複許可がONなら avoidDuplicate は OFF (false)
             avoidDuplicate: !allowDuplicateChecked 
         }
     };
 
     try {
-        log(`録画ルール追加リクエスト: ${keyword} (除外:[再]:${ignoreRebroadcastChecked}, 詳細:${includeDescChecked}, 重複回避:${payload.reserveOption.avoidDuplicate})`);
+        log(`録画ルール追加リクエスト: ${keyword} (正規表現:${keyRegExpChecked}, 重複回避:${payload.reserveOption.avoidDuplicate})`);
         
         const r = await fetch('/proxy/rule', {
             method: 'POST',
@@ -939,8 +945,9 @@ async function addRule() {
         document.getElementById('keywordInput').value = '';
         document.getElementById('ignoreRebroadcastCheck').checked = false;
         document.getElementById('includeDescCheck').checked = false;
-        // ★ 追加: 重複許可チェックボックスをリセット
         document.getElementById('allowDuplicateCheck').checked = false;
+        // ★ 追加: 正規表現チェックボックスをリセット
+        document.getElementById('keyRegExpCheck').checked = false;
         
     } catch(e){
         log("追加エラー: " + e.message);

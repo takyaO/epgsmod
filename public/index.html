@@ -801,11 +801,28 @@ function selectProgram() {
     }
 }
 
-// ▼▼▼ 追加: 番組リスト出力機能 ▼▼▼
-function exportProgramList() {
+async function exportProgramList() {
     if (!originalProgramList || originalProgramList.length === 0) {
         alert("出力する番組リストがありません。先に検索を実行してください。");
         return;
+    }
+    
+    let channelMap = {};
+    try {
+        const res = await fetch('/proxy/channels', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ epgApiBase: EPG_API_BASE })
+        });
+        if (res.ok) {
+            const channels = await res.json();
+            channelMap = channels.reduce((acc, ch) => {
+                acc[ch.id] = ch.name || ch.halfWidthName || `ID:${ch.id}`;
+                return acc;
+            }, {});
+        }
+    } catch (e) {
+        console.error("チャンネル情報取得エラー:", e);
     }
     
     const wdayList = ['日', '月', '火', '水', '木', '金', '土'];
@@ -817,7 +834,10 @@ function exportProgramList() {
     originalProgramList.forEach((p, index) => {
         if (!p || !p.name) return;
         
-        let startTime = "";
+        // ▼▼▼ 変更: 終了時刻も含める ▼▼▼
+        let startTimeStr = "";
+        let endTimeStr = "";
+        
         if (p.startAt) {
             const d = new Date(p.startAt);
             if (!Number.isNaN(d.getTime())) {
@@ -826,30 +846,48 @@ function exportProgramList() {
                 const hh = String(d.getHours()).padStart(2, '0');
                 const mi = String(d.getMinutes()).padStart(2, '0');
                 const wday = wdayList[d.getDay()];
-                startTime = `${mm}/${dd}(${wday}) ${hh}:${mi}`;
+                startTimeStr = `${mm}/${dd}(${wday}) ${hh}:${mi}`;
             }
         }
         
-        // 番組名、時刻、説明（あれば）を出力
-        const timeStr = startTime ? `[${startTime}]` : "[時刻未指定]";
+        if (p.endAt) {
+            const d = new Date(p.endAt);
+            if (!Number.isNaN(d.getTime())) {
+                const hh = String(d.getHours()).padStart(2, '0');
+                const mi = String(d.getMinutes()).padStart(2, '0');
+                endTimeStr = `${hh}:${mi}`;
+            }
+        }
+        
+        // [06/10(水) 22:00-23:00] の形式で組み立て
+        let timeStr;
+        if (startTimeStr && endTimeStr) {
+            timeStr = `[${startTimeStr}-${endTimeStr}]`;
+        } else if (startTimeStr) {
+            timeStr = `[${startTimeStr}]`;
+        } else {
+            timeStr = "[時刻未指定]";
+        }
+        // ▲▲▲ 変更ここまで ▲▲▲
+        
         textContent += `${index + 1}. ${timeStr} ${p.name}\n`;
         
-        // あればチャンネル情報や説明も追加
-        if (p.channel) {
-            textContent += `   チャンネル: ${p.channel}\n`;
+        const channelName = channelMap[p.channelId];
+        if (channelName) {
+            textContent += `   チャンネル: ${channelName}\n`;
         }
+        
         if (p.description) {
-            const desc = p.description.replace(/\n/g, " "); // 改行を空白に
+            const desc = p.description.replace(/\n/g, " ");
             textContent += `   概要: ${desc}\n`;
         }
         textContent += "\n";
     });
     
-    // ファイル生成とダウンロード
     const blob = new Blob([textContent], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    const timestamp = now.toISOString().slice(0,19).replace(/[-:T]/g, "").slice(2,14); // YYMMDDHHMMSS
+    const timestamp = now.toISOString().slice(0,19).replace(/[-:T]/g, "").slice(2,14);
     a.href = url;
     a.download = `program_list_${timestamp}.txt`;
     document.body.appendChild(a);
@@ -858,8 +896,7 @@ function exportProgramList() {
     URL.revokeObjectURL(url);
     
     log(`番組リストを出力しました: ${originalProgramList.length}件`);
-}
-// ▲▲▲ 追加ここまで ▲▲▲
+}      
 
 async function addRule() {
     const keyword = document.getElementById('keywordInput').value.trim();

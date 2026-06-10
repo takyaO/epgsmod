@@ -29,9 +29,13 @@ sudo docker run -d --network host --name epgsmod --restart unless-stopped ghcr.i
 
 環境変数 PORT が設定(-e PORT=3002)されていればそれを使用し、なければ 3001 をデフォルトとして使用する
 
-ブラウザで。http://localhost:3001 にアクセスし、画面上部でEPGStationのAPI URLを設定・保存してください
+ブラウザで3001番ポート（http://localhost:3001 や http://100.x.y.z:3001 等）にアクセスし、画面上部でEPGStationのAPI URLを設定・保存してください
 
 ## 解説
 
 [テレビ録画メディアサーバー構築入門（第２６回）](https://note.com/leal_walrus5520/n/ncaf1feb3808c)
+
+## プライバシー重視
+
+あなた自身が設定したサーバー以外との通信は一切ありません。
 

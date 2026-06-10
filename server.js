@@ -246,6 +246,23 @@ app.post('/proxy/rules/add', async (req, res) => {
     }
 });
 
+// チャンネル一覧取得用プロキシ
+app.post('/proxy/channels', async (req, res) => {
+    try {
+        const { epgApiBase } = req.body;
+        if (!isAllowedEpgApiBase(epgApiBase)) {
+            return res.status(403).json({ error: "Forbidden" });
+        }
+        const targetUrl = `${epgApiBase}/api/channels`;
+        console.log(`Proxy fetching channels: ${targetUrl}`);
+        const apiRes = await axios.get(targetUrl);
+        res.json(apiRes.data);
+    } catch (error) {
+        console.error("Proxy channels Error:", error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 /**
  * EPG API URLが安全な（プライベートネットワークまたは許可されたホスト）
  * IPアドレスまたはホスト名を使用しているかチェックする。

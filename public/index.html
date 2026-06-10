@@ -7,20 +7,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
     /* 全体設定 */
-    body { 
-        font-family: 'Segoe UI', 'Hiragino Kaku Gothic ProN', sans-serif; 
-        max-width: 600px; 
-        margin: auto; 
-        padding: 20px 15px; 
+    body {
+        font-family: 'Segoe UI', 'Hiragino Kaku Gothic ProN', sans-serif;
+        max-width: 600px;
+        margin: auto;
+        padding: 20px 15px;
         background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
         color: #333;
         line-height: 1.6;
     }
-    
+
     /* 見出し */
-    h1 { 
-        font-size: 1.5rem; 
-        text-align: center; 
+    h1 {
+        font-size: 1.5rem;
+        text-align: center;
         margin: 0 0 25px 0;
         padding: 15px 0;
         background: linear-gradient(90deg, #4b6cb7 0%, #182848 100%);
@@ -28,7 +28,7 @@
         border-radius: 8px;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
-    
+
     h3 {
         margin: 0 0 15px 0;
         font-size: 1.1rem;
@@ -37,7 +37,7 @@
         align-items: center;
         gap: 8px;
     }
-    
+
     h3::before {
         content: '';
         display: inline-block;
@@ -46,41 +46,41 @@
         background: #4b6cb7;
         border-radius: 2px;
     }
-    
+
     /* カード */
-    .card { 
-        background: white; 
-        padding: 20px; 
-        border-radius: 10px; 
-        margin-bottom: 20px; 
+    .card {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         border: 1px solid #e1e8ed;
         transition: transform 0.2s, box-shadow 0.2s;
     }
-    
+
     .card:hover {
         transform: translateY(-2px);
         box-shadow: 0 6px 16px rgba(0,0,0,0.12);
     }
-    
+
     /* 共通フォーム要素 */
-    select, input[type="url"], input[type="text"] { 
-        width: 100%; 
-        margin-top: 8px; 
-        padding: 12px 15px; 
+    select, input[type="url"], input[type="text"] {
+        width: 100%;
+        margin-top: 8px;
+        padding: 12px 15px;
         border: 2px solid #e1e8ed;
         border-radius: 6px;
         font-size: 0.95rem;
         transition: border-color 0.2s;
         box-sizing: border-box;
     }
-    
+
     select:focus, input[type="url"]:focus, input[type="text"]:focus {
         outline: none;
         border-color: #4b6cb7;
         box-shadow: 0 0 0 3px rgba(75, 108, 183, 0.1);
     }
-    
+
     /* ボタン基本 */
     button {
         padding: 12px 20px;
@@ -96,7 +96,7 @@
         gap: 6px;
         box-sizing: border-box;
     }
-    
+
     /* プライマリボタン */
     button:not(.mini-btn) {
         background: linear-gradient(90deg, #4b6cb7 0%, #3a56a4 100%);
@@ -104,13 +104,13 @@
         width: 100%;
         margin-top: 12px;
     }
-    
+
     button:not(.mini-btn):hover {
         background: linear-gradient(90deg, #3a56a4 0%, #2d468c 100%);
         transform: translateY(-1px);
         box-shadow: 0 4px 8px rgba(58, 86, 164, 0.3);
     }
-    
+
     /* セカンダリボタン */
     button.mini-btn {
         padding: 6px 12px;
@@ -120,39 +120,50 @@
         color: #495057;
         white-space: nowrap;
     }
-    
+
     button.mini-btn:hover {
         background: #e9ecef;
         border-color: #ced4da;
     }
-    
+
+    /* リスト出力ボタン用 */
+    button.mini-btn.export-btn {
+        background: #28a745;
+        color: white;
+        border-color: #28a745;
+    }
+    button.mini-btn.export-btn:hover {
+        background: #218838;
+        border-color: #218838;
+    }
+
     /* 危険ボタン */
     button[style*="background-color: #d9534f"] {
         background: linear-gradient(90deg, #d9534f 0%, #c9302c 100%) !important;
         color: white !important;
     }
-    
+
     button[style*="background-color: #d9534f"]:hover {
         background: linear-gradient(90deg, #c9302c 0%, #ac2925 100%) !important;
     }
-    
+
     /* 成功ボタン */
     button[style*="background:#17a2b8"] {
         background: linear-gradient(90deg, #17a2b8 0%, #138496 100%) !important;
     }
-    
+
     /* 行レイアウト */
     .row {
         display: flex;
         align-items: center;
         gap: 10px;
     }
-    
+
     .row input[type="url"] {
         flex: 1;
         margin: 0;
     }
-    
+
     .row button {
         flex: 0 0 auto;
         width: auto;
@@ -160,7 +171,7 @@
         margin: 0;
         white-space: nowrap;
     }
-    
+
     /* コンパクトボタングループ */
     .compact-buttons {
         display: flex;
@@ -168,13 +179,13 @@
         gap: 6px;
         margin: 8px 0;
     }
-    
+
     .compact-buttons .mini-btn {
         flex: 1;
         min-width: 70px;
         padding: 8px 10px;
     }
-    
+
     /* プログラムリスト */
     #programList {
         width: 100%;
@@ -186,7 +197,7 @@
         margin-top: 8px;
         box-sizing: border-box;
     }
-    
+
     /* チェックボックス */
     input[type="checkbox"] {
         width: 16px;
@@ -194,13 +205,13 @@
         margin: 0 8px 0 0;
         vertical-align: middle;
     }
-    
+
     /* ログ表示 */
-    #log { 
-        background: #1a1a1a; 
-        color: #4ade80; 
-        padding: 15px; 
-        height: 180px; 
+    #log {
+        background: #1a1a1a;
+        color: #4ade80;
+        padding: 15px;
+        height: 180px;
         overflow-y: auto;
         border-radius: 6px;
         font-family: 'Monaco', 'Consolas', monospace;
@@ -210,12 +221,12 @@
         white-space: pre-wrap;
         word-break: break-all;
     }
-    
+
     /* 競合リスト */
     #conflictList {
         margin-top: 15px;
     }
-    
+
     #conflictList > div {
         border: 1px solid #ffcdd2;
         padding: 15px;
@@ -223,7 +234,7 @@
         border-radius: 6px;
         background-color: #fff5f5;
     }
-    
+
     /* ルール一覧 */
     #ruleList {
         margin-top: 15px;
@@ -234,7 +245,7 @@
         padding: 10px;
         background: #f8f9fa;
     }
-    
+
     #ruleList > div {
         border-bottom: 1px solid #e9ecef;
         padding: 12px 8px;
@@ -242,11 +253,11 @@
         justify-content: space-between;
         align-items: flex-start;
     }
-    
+
     #ruleList > div:last-child {
         border-bottom: none;
     }
-    
+
     /* 説明テキスト */
     .description {
         font-size: 0.9rem;
@@ -254,37 +265,36 @@
         margin: 8px 0 15px 0;
         line-height: 1.5;
     }
-    
+
     /* レスポンシブ調整 */
     @media (max-width: 480px) {
         body {
             padding: 15px 10px;
         }
-        
+
         .card {
             padding: 15px;
         }
-        
+
         h1 {
             font-size: 1.3rem;
             padding: 12px 0;
         }
-        
+
         select, input[type="url"], input[type="text"], button {
             padding: 10px 12px;
         }
-        
+
         .compact-buttons {
             gap: 4px;
         }
-        
+
         .compact-buttons .mini-btn {
             min-width: 60px;
             font-size: 0.8rem;
             padding: 6px 8px;
         }
     }
-
     /* --- 親コンテナ: 強制的に横並びにする --- */
     .custom-input-row {
     display: flex !important;
@@ -293,44 +303,41 @@
     width: 100%;
     gap: 3px; /* 要素間の隙間を維持 */
     }
-
     /* --- 1. 入力欄: 残りのスペースを埋める (左端) --- */
     .custom-input-row input#epgApiUrl {
     flex-grow: 1 !important; /* 余白をすべて埋める */
     width: auto !important;
     min-width: 0;
-    
+
     height: 35px; /* ボタンと高さを揃える */
-    
+
     box-sizing: border-box;
     margin: 0;
-    padding: 6px; 
+    padding: 6px;
     }
-
     /* --- 2. 共通ボタン設定: 幅20pxに固定 --- */
     .action-btn {
     /* 幅を20pxに固定 */
-    flex: 0 0 20px !important; 
+    flex: 0 0 20px !important;
     width: 20px !important;
     height: 35px; /* 高さを揃える */
-    
+
     padding: 0;
     margin: 0;
-    
+
     /* 文字サイズを調整 (縦書きに合わせた調整) */
-    font-size: 0.7rem; 
+    font-size: 0.7rem;
     line-height: 0.9; /* 行間を詰める */
-    
+
     border: none;
     border-radius: 4px;
     cursor: pointer;
     box-sizing: border-box;
-    
+
     display: flex;
     align-items: center;
     justify-content: center; /* ボタンの縦横中央に文字を配置 */
     }
-
     /* --- 2-1. ゴミ箱ボタン --- */
     .trash-btn {
     background-color: #dc3545; /* 赤系 */
@@ -338,47 +345,40 @@
     font-size: 1.0rem; /* アイコンサイズを維持 */
     line-height: 1; /* 行間を通常に戻す (アイコンのため) */
     }
-
     /* --- 2-2. 確認ボタン --- */
     .check-btn {
     background-color: #6c757d; /* グレー系 */
     color: white;
     }
-
     /* --- 2-3. 保存ボタン --- */
     .save-btn {
     background-color: #007bff; /* ブルー系 */
     color: white;
     }
-
     /* ホバーエフェクト */
     .trash-btn:hover { background-color: #c82333; }
     .check-btn:hover { background-color: #5a6268; }
     .save-btn:hover { background-color: #0069d9; }
-
 </style>
 </head>
 <body>
-
 <h1>📺 EPGSmod 録画予約</h1>
-
 <div class="card">
     <h3>🌐 EPGStation設定</h3>
-    
+
     <div class="custom-input-row">
-        
+
         <input type="url" id="epgApiUrl" list="urlHistoryList" placeholder="例: http://localhost:8888">
         <datalist id="urlHistoryList"></datalist>
-        
+
         <button onclick="deleteCurrentHistory()" class="action-btn trash-btn" title="履歴から削除">🗑️</button>
-        
+
         <button onclick="checkApiUrl()" class="action-btn check-btn" title="API接続確認">確<br>認</button>
-        
+
         <button onclick="saveApiUrl()" class="action-btn save-btn" title="URLを保存">保<br>存</button>
-        
+
     </div>
 </div>
-
 <div class="card">
     <h3>1. ジャンル選択</h3>
     <select id="limitSelect">
@@ -389,31 +389,35 @@
       <option value="400">400 件</option>
     </select>
     <select id="genreSelect"></select>
+    <input type="text" id="searchKeyword" placeholder="キーワードで絞り込み (空白で全件)" style="margin-top: 10px;">
     <button onclick="searchSchedules()">検索</button>
 </div>
-
 <div class="card">
     <h3>2. 番組選択</h3>
     <select id="programList" size="6" onchange="selectProgram()"></select>
-    
-    <div style="margin-top:10px; display:flex; gap: 20px;">
+
+    <div style="margin-top:10px; display:flex; gap: 20px; flex-wrap: wrap;">
         <label style="display:flex; align-items:center; gap:6px; font-size:0.9rem; white-space: nowrap;">
           <input type="checkbox" id="filterNewCheck" onchange="filterNewOnly()">
             ［新］
         </label>
-        
+
         <label style="display:flex; align-items:center; gap:6px; font-size:0.9rem; white-space: nowrap;">
             <input type="checkbox" id="sortTimeCheck" onchange="filterNewOnly()">
             時刻順
         </label>
-
         <label style="display:flex; align-items:center; gap:6px; font-size:0.9rem; white-space: nowrap;">
             <input type="checkbox" id="noExtractCheck">
             抽出略
         </label>
+        
+        <!-- ▼▼▼ 追加: リスト出力ボタン ▼▼▼ -->
+        <button onclick="exportProgramList()" class="mini-btn export-btn" style="margin-left: auto;">
+            📥 リスト出力
+        </button>
+        <!-- ▲▲▲ 追加ここまで ▲▲▲ -->
     </div>
 </div>
-
 <div class="card">
     <h3>3. キーワード録画ルール追加</h3>
     <input id="keywordInput" placeholder="番組名が入ります" style="
@@ -427,14 +431,13 @@
         box-sizing: border-box;
         transition: border-color 0.2s;
     ">
-    
+
     <div id="keywordSearchButtons" class="compact-buttons">
         <button class="mini-btn" onclick="searchExternal('duck')">Duck</button>
         <button class="mini-btn" onclick="searchExternal('google')">Google</button>
         <button class="mini-btn" onclick="searchExternal('wiki')">Wiki</button>
         <button class="mini-btn" onclick="searchExternal('tmdb')">TMDB</button>
     </div>
-
     <div style="margin-top:10px; display:flex; gap: 15px; align-items: center; flex-wrap: wrap;">
         <label style="display:flex; align-items:center; gap:6px; font-size:0.9rem; white-space: nowrap;">
             <input type="checkbox" id="ignoreRebroadcastCheck">
@@ -453,12 +456,10 @@
             正規表現
         </label>
     </div>
-
     <button onclick="addRule()">
         📝 録画ルール追加
     </button>
 </div>
-
 <div class="card">
     <h3>4. 競合チェック</h3>
     <div class="description">
@@ -469,7 +470,6 @@
     </button>
     <div id="conflictList" style="margin-top:15px;"></div>
 </div>
-
 <div class="card">
     <div style="display:flex; justify-content:space-between; align-items:center;">
         <h3>5. ルール一覧</h3>
@@ -481,7 +481,6 @@
         <p style="color:#666; text-align:center; padding:10px;">「更新」ボタンを押してルールを読み込んでください。</p>
     </div>
 </div>
-
 <div class="card">
     <div style="display:flex; justify-content:space-between; align-items:center;">
         <h3>6. 予約一覧</h3>
@@ -493,38 +492,32 @@
         <p style="color:#666; text-align:center; padding:10px;">「更新」ボタンを押して予約情報を読み込んでください。</p>
     </div>
 </div>
-
 <div class="card">
     <h3>📋 ログ</h3>
     <div id="log">Ready...</div>
 </div>
-
 <script src="extractProgram.js"></script>
 <script>
 // ====================================================================
 // ▼▼▼ API URL管理のための変数の定義と関数の追加 ▼▼▼
 // ====================================================================
-
 // グローバル変数
 let EPG_API_BASE = '';
 const HISTORY_KEY = 'epgApiUrlHistory'; // 履歴保存用のキー
 const CURRENT_URL_KEY = 'epgApiUrl';    // 現在設定用のキー
-
 // 初期化処理：ページ読み込み時に実行してください
 document.addEventListener('DOMContentLoaded', () => {
     loadApiUrl();
     updateDatalist();
 });
-
 function checkApiUrl() {
     const inputElement = document.getElementById('epgApiUrl');
     const url = inputElement.value.trim().replace(/\/$/, '');
-    
+
     if (!url) {
         alert("EPG API URLを入力してください。");
         return;
     }
-
     try {
         new URL(url);
         log(`API URL確認: ${url} にジャンプします`);
@@ -534,61 +527,51 @@ function checkApiUrl() {
         alert("入力されたURLが不正な形式です。HTTPまたはHTTPSで始まる有効なURLを入力してください。");
     }
 }
-
 // 保存ボタン：設定を適用し、履歴に追加
 function saveApiUrl() {
     const inputElement = document.getElementById('epgApiUrl');
     const newUrl = inputElement.value.trim().replace(/\/$/, '');
-
     if (!newUrl) {
         alert("URLが空です");
         return;
     }
-
     // 1. 現在の設定として保存
     EPG_API_BASE = newUrl;
     localStorage.setItem(CURRENT_URL_KEY, EPG_API_BASE);
-
     // 2. 履歴に追加 (重複排除して先頭に追加)
     let history = getHistory();
     // 既に存在する場合は一旦削除（順序を先頭に持ってくるため）
     history = history.filter(item => item !== newUrl);
     history.unshift(newUrl);
-    
+
     // 履歴を保存
     localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-
     // UI更新
     updateDatalist();
-    
+
     alert(`EPGStation API URLを ${EPG_API_BASE} に設定しました。`);
     log(`API URL設定: ${EPG_API_BASE}`);
 }
-
 // 削除ボタン：現在入力欄にある値を履歴から削除
 function deleteCurrentHistory() {
     const inputElement = document.getElementById('epgApiUrl');
     const targetUrl = inputElement.value.trim().replace(/\/$/, '');
-
     if (!targetUrl) return;
-
     let history = getHistory();
     const initialLength = history.length;
-    
+
     // 履歴から削除
     history = history.filter(item => item !== targetUrl);
-
     if (history.length < initialLength) {
         // 変更があった場合のみ保存・更新
         localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
         updateDatalist();
         inputElement.value = ''; // 入力欄をクリア
-        alert(`履歴から削除しました: ${targetUrl}`);
+        log(`履歴から削除しました: ${targetUrl}`);
     } else {
         alert("履歴に存在しないURLです。");
     }
 }
-
 // 内部関数：LocalStorageから履歴配列を取得
 function getHistory() {
     const json = localStorage.getItem(HISTORY_KEY);
@@ -598,20 +581,17 @@ function getHistory() {
         return [];
     }
 }
-
 // 内部関数：datalistのDOMを更新
 function updateDatalist() {
     const history = getHistory();
     const dataList = document.getElementById('urlHistoryList');
     dataList.innerHTML = ''; // リセット
-
     history.forEach(url => {
         const option = document.createElement('option');
         option.value = url;
         dataList.appendChild(option);
     });
 }
-
 // 内部関数：起動時に保存された値を復元
 function loadApiUrl() {
     // 最後に保存した設定値を入力欄に入れる
@@ -621,24 +601,20 @@ function loadApiUrl() {
         document.getElementById('epgApiUrl').value = current;
     }
 }
-
 // 簡易ログ用（既存コードにlog関数がない場合のダミー）
 if (typeof log === 'undefined') {
     window.log = console.log;
-} 
-
+}
 // ページ読み込み時の処理
 document.addEventListener('DOMContentLoaded', () => {
     const savedUrl = localStorage.getItem('epgApiUrl');
     const inputElement = document.getElementById('epgApiUrl');
-
     // LocalStorageに保存されたURLがあれば復元
     if (savedUrl && inputElement) {
         inputElement.value = savedUrl;
         EPG_API_BASE = savedUrl;
     }
     log(`初期API URL: ${EPG_API_BASE}`);
-
     // 既存のジャンル選択肢の生成ロジック
     const genreSelect = document.getElementById('genreSelect');
     for (const [k,v] of Object.entries(genreMap)) {
@@ -648,44 +624,35 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     genreSelect.value = "7";
 });
-
-
 // ====================================================================
 // ▲▲▲ API URL管理セクション終わり ▲▲▲
 // ====================================================================
-
 const genreMap = {
     '-1': "すべて",
     0:"ニュース",1:"スポーツ",2:"情報",3:"ドラマ",
     4:"音楽",5:"バラエティ",6:"映画",7:"アニメ/特撮",
     8:"ドキュメンタリー",9:"劇場/公演",10:"趣味/教育",11:"福祉"
 };
-
 // genreSelectの初期化ロジックはDOMContentLoaded内に移動しました
-
 function log(msg){
     const el = document.getElementById('log');
     el.innerText = `[${new Date().toLocaleTimeString()}] ${msg}\n` + el.innerText;
 }
-
 async function searchSchedules(){
     const genreId = Number(document.getElementById('genreSelect').value);
-
     // ★ プルダウンの limit を取得
     const limit = Number(document.getElementById('limitSelect').value);
-
+    const keyword = document.getElementById('searchKeyword').value.trim();
     // 検索オプションオブジェクトを準備
     const searchOption = {
-        keyword: "",
+        keyword: keyword,
         name: true, description: true, extended: true,
         GR: true, BS: true, CS: true, SKY: true,
         // subGenre を外す（任意扱い）
     };
-
     if (genreId !== -1) {
         searchOption.genres = [{ genre: genreId }];
     }
-
     const payload = {
         epgApiBase: EPG_API_BASE,
         isHalfWidth: false,
@@ -693,7 +660,7 @@ async function searchSchedules(){
         // ★ 選択された limit を反映
         limit: limit
     };
-    
+
     try {
         const res = await fetch('/proxy/search', {
             method: 'POST',
@@ -701,13 +668,11 @@ async function searchSchedules(){
             body: JSON.stringify(payload)
         });
         const data = await res.json();
-
         if (data && data.error) {
             log("検索エラー: " + data.error);
             alert("検索失敗: " + data.error);
             return;
         }
-
         updateList(data);
         log(`検索完了: ${data.length} 件`);
     } catch(e){
@@ -715,31 +680,24 @@ async function searchSchedules(){
         alert("検索失敗");
     }
 }
-
 function updateList(list){
     const box = document.getElementById('programList');
     box.innerHTML = "";
-
     if (!Array.isArray(list)) {
         originalProgramList = [];
         return;
     }
-
     // 1) 受け取った一覧を原本として保持（filter切替に使用）
     originalProgramList = list.slice();
-
     // 2) 名前有りの要素だけ取り出して日本語ソート
     const filteredAndSorted = originalProgramList
         .filter(p => p && p.name) // p が存在し name があることを確認
         .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
-
     // ▼追加: 曜日の定義
     const wdayList = ['日', '月', '火', '水', '木', '金', '土'];
-
     // 3) 表示用に option を作成（開始日時があれば表示に含める）
     filteredAndSorted.forEach(p => {
         const op = document.createElement('option');
-
         // startAt がある／有効な日付かをチェックしてフォーマット
         let startTime = "";
         if (p.startAt) {
@@ -749,40 +707,31 @@ function updateList(list){
                 const dd = String(d.getDate()).padStart(2, '0');
                 const hh = String(d.getHours()).padStart(2, '0');
                 const mi = String(d.getMinutes()).padStart(2, '0');
-
                 // ▼追加: 曜日を取得
                 const wday = wdayList[d.getDay()];
-
                 // ▼変更: フォーマットに曜日を追加 (例: 12/10(水) 18:00)
                 startTime = `${mm}/${dd}(${wday}) ${hh}:${mi}`;
             }
         }
-
         op.value = p.name; // キーワード入力に使う値は番組名のみ
         op.textContent = startTime ? `[${startTime}] ${p.name}` : p.name;
         box.appendChild(op);
     });
-
     // 4) 現在「［新］のみ表示」がオンなら絞り込む（切替後も一貫して動かすため）
     const chk = document.getElementById('filterNewCheck');
     if (chk && chk.checked) {
         filterNewOnly(); // 既に用意した関数を利用
     }
 }
-
 function filterNewOnly() {
     const listBox = document.getElementById("programList");
     listBox.innerHTML = "";
-
     if (!Array.isArray(originalProgramList)) return;
-
     // チェック状態を取得
     const filterNew = document.getElementById('filterNewCheck').checked;
     const sortTime = document.getElementById('sortTimeCheck').checked;
-
     // 元の配列をコピーして操作用配列を作成
     let filtered = [...originalProgramList];
-
     // 1. フィルタリング処理 ([新]のみなど)
     if (filterNew) {
         filtered = filtered.filter(x => {
@@ -790,7 +739,6 @@ function filterNewOnly() {
             return n.includes("［新］") || n.includes("[新]");
         });
     }
-
     // 2. ソート処理 (時刻順 または 名前順)
     if (sortTime) {
         // 時刻順 (古い順)
@@ -808,14 +756,11 @@ function filterNewOnly() {
             return nameA.localeCompare(nameB, "ja");
         });
     }
-
     // 3. リストへの追加処理
     const wdayList = ['日', '月', '火', '水', '木', '金', '土'];
-
     filtered.forEach(p => {
         if (!p || !p.name) return;
         const op = document.createElement("option");
-
         let startTime = "";
         if (p.startAt) {
             const d = new Date(p.startAt);
@@ -825,30 +770,25 @@ function filterNewOnly() {
                 const hh = String(d.getHours()).padStart(2, '0');
                 const mi = String(d.getMinutes()).padStart(2, '0');
                 const wday = wdayList[d.getDay()];
-
                 startTime = `${mm}/${dd}(${wday}) ${hh}:${mi}`;
             }
         }
-
         op.value = p.name;
         op.textContent = startTime ? `[${startTime}] ${p.name}` : p.name;
         listBox.appendChild(op);
     });
 }      
-
 function selectProgram() {
     // 1. 選択された <option> の value (rawName) を取得
     const rawName = document.getElementById('programList').value;
-    
+
     // 値が空の場合は終了
     if (!rawName) return;
-
     const keywordInput = document.getElementById('keywordInput');
-    
+
     // 2. 抽出なしチェックボックスの状態を取得
     // id="noExtractCheck" はHTMLで追加済みとします
     const noExtractChecked = document.getElementById('noExtractCheck').checked;
-
     if (noExtractChecked) {
         // 抽出なしがチェックされている場合は、そのまま rawName を使用
         keywordInput.value = rawName;
@@ -859,7 +799,67 @@ function selectProgram() {
         keywordInput.value = extractedKeyword;
         log(`キーワード設定: ${extractedKeyword} (抽出あり)`);
     }
-}    
+}
+
+// ▼▼▼ 追加: 番組リスト出力機能 ▼▼▼
+function exportProgramList() {
+    if (!originalProgramList || originalProgramList.length === 0) {
+        alert("出力する番組リストがありません。先に検索を実行してください。");
+        return;
+    }
+    
+    const wdayList = ['日', '月', '火', '水', '木', '金', '土'];
+    const now = new Date();
+    let textContent = `番組リスト出力日時: ${now.toLocaleString('ja-JP')}\n`;
+    textContent += `件数: ${originalProgramList.length}件\n`;
+    textContent += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n";
+    
+    originalProgramList.forEach((p, index) => {
+        if (!p || !p.name) return;
+        
+        let startTime = "";
+        if (p.startAt) {
+            const d = new Date(p.startAt);
+            if (!Number.isNaN(d.getTime())) {
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const dd = String(d.getDate()).padStart(2, '0');
+                const hh = String(d.getHours()).padStart(2, '0');
+                const mi = String(d.getMinutes()).padStart(2, '0');
+                const wday = wdayList[d.getDay()];
+                startTime = `${mm}/${dd}(${wday}) ${hh}:${mi}`;
+            }
+        }
+        
+        // 番組名、時刻、説明（あれば）を出力
+        const timeStr = startTime ? `[${startTime}]` : "[時刻未指定]";
+        textContent += `${index + 1}. ${timeStr} ${p.name}\n`;
+        
+        // あればチャンネル情報や説明も追加
+        if (p.channel) {
+            textContent += `   チャンネル: ${p.channel}\n`;
+        }
+        if (p.description) {
+            const desc = p.description.replace(/\n/g, " "); // 改行を空白に
+            textContent += `   概要: ${desc}\n`;
+        }
+        textContent += "\n";
+    });
+    
+    // ファイル生成とダウンロード
+    const blob = new Blob([textContent], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const timestamp = now.toISOString().slice(0,19).replace(/[-:T]/g, "").slice(2,14); // YYMMDDHHMMSS
+    a.href = url;
+    a.download = `program_list_${timestamp}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    log(`番組リストを出力しました: ${originalProgramList.length}件`);
+}
+// ▲▲▲ 追加ここまで ▲▲▲
 
 async function addRule() {
     const keyword = document.getElementById('keywordInput').value.trim();
@@ -868,48 +868,42 @@ async function addRule() {
     const allowDuplicateChecked = document.getElementById('allowDuplicateCheck').checked;
     // ★ 追加: 正規表現チェックボックスの状態を取得
     const keyRegExpChecked = document.getElementById('keyRegExpCheck').checked;
-
     if (!keyword) return alert("キーワードを入力");
-
     if (!EPG_API_BASE || EPG_API_BASE.trim() === '') {
         log("エラー: EPG API URLが設定されていません。");
         alert("EPG API URLを設定し、[URLを保存]を押してください。");
         return;
     }
-
     const descMsg = includeDescChecked ? "あり" : "なし";
     const duplicateMsg = allowDuplicateChecked ? "許可" : "回避";
     // ★ 修正: 確認メッセージに正規表現の状態を追加
     const regexMsg = keyRegExpChecked ? "有効" : "無効";
-    
-    if (!confirm(`「${keyword}」\n(除外:[再]: ${ignoreRebroadcastChecked} / 概要・詳細: ${descMsg} / 重複: ${duplicateMsg} / 正規表現: ${regexMsg})\nをルール追加しますか？`)) return;
 
+    if (!confirm(`「${keyword}」\n(除外:[再]: ${ignoreRebroadcastChecked} / 概要・詳細: ${descMsg} / 重複: ${duplicateMsg} / 正規表現: ${regexMsg})\nをルール追加しますか？`)) return;
     // 検索オプションの作成
     const searchOption = {
         keyword: keyword,
         name: true,
         // ★ 追加: 正規表現フラグを設定
         keyRegExp: keyRegExpChecked,
-        
+
         description: includeDescChecked,
         extended: includeDescChecked,
-        
+
         GR: true,
         BS: true,
         CS: true,
     };
-
     // [再]除外の処理
     if (ignoreRebroadcastChecked) {
         searchOption.ignoreKeyword = "[再]";
         searchOption.ignoreName = true;
         searchOption.ignoreDescription = false;
         searchOption.ignoreExtended = false;
-
         searchOption.ignoreKeyCS = false;
         searchOption.ignoreKeyRegExp = false;
     }
-    
+
     // ペイロードの作成
     const payload = {
         epgApiBase: EPG_API_BASE,
@@ -918,29 +912,26 @@ async function addRule() {
         reserveOption: {
             enable: true,
             allowEndLack: false,
-            avoidDuplicate: !allowDuplicateChecked 
+            avoidDuplicate: !allowDuplicateChecked
         }
     };
-
     try {
         log(`録画ルール追加リクエスト: ${keyword} (正規表現:${keyRegExpChecked}, 重複回避:${payload.reserveOption.avoidDuplicate})`);
-        
+
         const r = await fetch('/proxy/rule', {
             method: 'POST',
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
         });
         const data = await r.json();
-
         if (data && data.error) {
             log(`追加エラー: ${data.error}`);
             alert(`追加失敗: ${data.error}`);
             return;
         }
-
         log(`追加 OK: ルールID ${data.id}`);
         alert("追加しました！");
-        
+
         // フォームのリセット
         document.getElementById('keywordInput').value = '';
         document.getElementById('ignoreRebroadcastCheck').checked = false;
@@ -948,23 +939,20 @@ async function addRule() {
         document.getElementById('allowDuplicateCheck').checked = false;
         // ★ 追加: 正規表現チェックボックスをリセット
         document.getElementById('keyRegExpCheck').checked = false;
-        
+
     } catch(e){
         log("追加エラー: " + e.message);
         alert("追加失敗");
     }
 }
-
 function searchExternal(type) {
     const keyword = document.getElementById('keywordInput').value.trim();
     if (!keyword) {
         alert("キーワードを入力してください");
         return;
     }
-
     let url = "";
     const q = encodeURIComponent(keyword);
-
     switch (type) {
         case "duck":
             url = `https://duckduckgo.com/?q=${q}`;
@@ -979,36 +967,31 @@ function searchExternal(type) {
             url = `https://www.themoviedb.org/search?query=${keyword}`;
             break;
     }
-
     window.open(url, "_blank");
 }
 /**
- * 競合情報を取得して表示するメイン関数
- */
+* 競合情報を取得して表示するメイン関数
+*/
 async function checkConflicts() {
     const logDiv = document.getElementById('log');
     const listDiv = document.getElementById('conflictList');
     const apiUrl = document.getElementById('epgApiUrl').value.replace(/\/$/, '');
-
     listDiv.innerHTML = '<p>検索中...</p>';
     logDiv.innerText = '競合情報を取得しています(Proxy経由)...';
-
     try {
         // 1. 競合で落ちた予約を取得
         const conflictData = await fetchReservesViaProxy(apiUrl, 'conflict');
-
         // 2. 有効な予約を取得
         const activeData = await fetchReservesViaProxy(apiUrl, 'normal');
-
         // ★★★ 修正1: 「番組ID」を使って強力に重複排除 ★★★
         const rawLostReserves = (conflictData.reserves || []).filter(r => r.isConflict === true);
-        
+
         const lostMap = new Map();
         rawLostReserves.forEach(r => {
             // programId（番組識別子）があればそれをキーにする
             // ない場合（手動予約の一部など）は 開始時刻+番組名 をキーにする
             const key = r.programId ? `prog-${r.programId}` : `time-${r.startAt}-${r.name}`;
-            
+
             // まだMapになければ追加（これで同一番組の重複IDは無視される）
             if (!lostMap.has(key)) {
                 lostMap.set(key, r);
@@ -1016,89 +999,73 @@ async function checkConflicts() {
         });
         const lostReserves = Array.from(lostMap.values());
         // ★★★★★★★★★★★★★★★★★★★★★★★★★★★
-
         const keptReserves = activeData.reserves || [];
-
         listDiv.innerHTML = ''; // クリア
-
         if (lostReserves.length === 0) {
             listDiv.innerHTML = '<p style="text-align:center; color:#28a745;">現在、競合している予約はありません。</p>';
             logDiv.innerText = '競合なし';
             return;
         }
-
         // 3. マッチング処理
         let count = 0;
         lostReserves.forEach(lost => {
             const lostStart = Number(lost.startAt);
             const lostEnd   = Number(lost.endAt);
-
             const enemies = keptReserves.filter(kept => {
                 // IDが同じなら除外
                 if (kept.id === lost.id) return false;
-
                 // ★★★ 修正2: もし「有効な予約」の中に「自分と同じ番組」があれば除外 ★★★
                 // (別チューナーや別ルールで録画成功している場合、それは敵ではないため)
                 if (lost.programId && kept.programId && lost.programId === kept.programId) {
                     return false;
                 }
-
                 const keptStart = Number(kept.startAt);
                 const keptEnd   = Number(kept.endAt);
-
                 return (lostStart < keptEnd) && (lostEnd > keptStart);
             });
-
             if (enemies.length > 0) {
                 count++;
                 const card = createConflictCard(lost, enemies, apiUrl);
                 listDiv.appendChild(card);
             }
         });
-
         if (count === 0) {
              listDiv.innerHTML = '<p>競合リストにはありますが、現在の有効予約と重なるものは見つかりませんでした。</p>';
         }
         logDiv.innerText = `競合チェック完了: ${count} 件の競合が見つかりました。`;
-
     } catch (err) {
         console.error(err);
         listDiv.innerHTML = `<p style="color:red">エラーが発生しました: ${err.message}</p>`;
         logDiv.innerText = `エラー: ${err.message}`;
     }
 }
-
 /**
- * プロキシ経由で予約リストを取得するヘルパー関数
+* プロキシ経由で予約リストを取得するヘルパー関数
 */
-	
+
 async function fetchReservesViaProxy(epgApiBase, type) {
     // type が 'reserves' の場合は limit や type パラメータを送らないように制御
     const isNormalReserves = (type === 'reserves');
     const limit = type === 'conflict' ? 50 : 2000;
-
     const payload = {
         epgApiBase: epgApiBase,
         // type が 'reserves' 以外の場合のみ type と limit を含める
         ...(isNormalReserves ? {} : { type: type, limit: limit })
     };
-
     const res = await fetch('/proxy/reserves', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
     });
-
     if (!res.ok) {
         const errText = await res.text();
         throw new Error(`Server Error (${res.status}): ${errText}`);
     }
     return await res.json();
 }
-
 /**
- * 文字列に含まれるHTML特殊文字をエスケープする
- */
+* 文字列に含まれるHTML特殊文字をエスケープする
+*/
 function escapeHtml(str) {
     if (typeof str !== 'string') {
         return str;
@@ -1114,26 +1081,22 @@ function escapeHtml(str) {
     });
 }
 /**
- * 予約削除を実行する関数 (Proxy経由)
- */
+* 予約削除を実行する関数 (Proxy経由)
+*/
 async function deleteReserve(reserveId, name) {
     if(!confirm(`以下の予約を削除しますか？\n\n「${name}」`)) return;
-
     const logDiv = document.getElementById('log');
     const apiUrl = document.getElementById('epgApiUrl').value.replace(/\/$/, '');
-
     try {
         const payload = {
             epgApiBase: apiUrl,
             reserveId: reserveId
         };
-
         const res = await fetch('/proxy/reserves/delete', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-
         if (res.ok) {
             logDiv.innerText = `削除成功: ${name}`;
             alert('削除しました。競合リストを更新します。');
@@ -1146,17 +1109,13 @@ async function deleteReserve(reserveId, name) {
         logDiv.innerText = `削除失敗: ${err.message}`;
     }
 }
-
-
 /**
- * 競合表示用のカードHTML要素を作成
- */
+* 競合表示用のカードHTML要素を作成
+*/
 function createConflictCard(lost, enemies, apiUrl) {
     const container = document.createElement('div');
     container.style.cssText = "border:1px solid #ffcdd2; padding:15px; margin-bottom:12px; border-radius:6px; background-color:#fff5f5;";
-
     const lostTimeStr = formatEpgTime(lost.startAt);
-
     // A. 録画できなかった番組 (上のブロック)
     let html = `
         <div style="margin-bottom:12px; padding-bottom:12px; border-bottom:1px dashed #ffcdd2;">
@@ -1165,34 +1124,32 @@ function createConflictCard(lost, enemies, apiUrl) {
             <div style="font-size:0.85em; color:#666;">${formatTimeRange(lost.startAt, lost.endAt)}</div>
             <div style="margin-top:10px; display:flex; gap:8px;">
                 <button onclick="deleteReserve(${lost.id}, '${lost.name}')" class="mini-btn" style="background:#666; color:white; flex:1;">予約取消</button>
-                <button onclick="window.open('${apiUrl}/#/guide?time=${lostTimeStr}', '_blank')" 
-                        class="mini-btn" 
+                <button onclick="window.open('${apiUrl}/#/guide?time=${lostTimeStr}', '_blank')"
+                        class="mini-btn"
                         style="background:#007bff; color:white; flex:1;">
                     📅 番組表
                 </button>
             </div>
         </div>
     `;
-
     // B. 原因の番組 (下のブロック)
     html += `<div style="font-weight:bold; color:#28a745; margin-bottom:8px; font-size:0.95rem;">✅ 優先された予約 (原因):</div>`;
-
     enemies.forEach(enemy => {
         const enemyTimeStr = formatEpgTime(enemy.startAt);
         html += `
             <div style="background:white; padding:12px; border-radius:6px; margin-bottom:10px; border-left: 4px solid #28a745;">
               <div style="font-weight:600;">${escapeHtml(enemy.name)}</div>
                 <div style="font-size:0.85em; color:#666; margin:5px 0;">${formatTimeRange(enemy.startAt, enemy.endAt)}</div>
-                
+
                 <div style="margin-top:8px; display:flex; gap:8px;">
-                    <button onclick="deleteReserve(${enemy.id}, '${enemy.name}')" 
-                            class="mini-btn" 
+                    <button onclick="deleteReserve(${enemy.id}, '${enemy.name}')"
+                            class="mini-btn"
                             style="background:#d9534f; color:white; flex: 2;">
                         🗑 予約削除
                     </button>
-                    
-                    <button onclick="window.open('${apiUrl}/#/guide?time=${enemyTimeStr}', '_blank')" 
-                            class="mini-btn" 
+
+                    <button onclick="window.open('${apiUrl}/#/guide?time=${enemyTimeStr}', '_blank')"
+                            class="mini-btn"
                             style="background:#007bff; color:white; flex: 1;">
                         📅 番組表
                     </button>
@@ -1200,11 +1157,9 @@ function createConflictCard(lost, enemies, apiUrl) {
             </div>
         `;
     });
-
     container.innerHTML = html;
     return container;
 }
-
 // ミリ秒を YYMMDDHH 形式に変換する関数
 function formatEpgTime(ms) {
     const d = new Date(ms);
@@ -1213,10 +1168,10 @@ function formatEpgTime(ms) {
     const dd = String(d.getDate()).padStart(2, '0');
     const hh = String(d.getHours()).padStart(2, '0');
     return `${yy}${mm}${dd}${hh}`;
-}	    
+}     
 /**
- * UNIX時間を読みやすい形式に変換 (MM/DD HH:mm〜HH:mm)
- */
+* UNIX時間を読みやすい形式に変換 (MM/DD HH:mm〜HH:mm)
+*/
 function formatTimeRange(start, end) {
     const fmt = (ts) => {
         const d = new Date(ts);
@@ -1230,82 +1185,70 @@ function formatTimeRange(start, end) {
     const e = fmt(end);
     return `${s.full} 〜 ${e.time}`;
 }
-
 /**
- * ルール一覧を取得 (Proxy経由)
- */
+* ルール一覧を取得 (Proxy経由)
+*/
 async function fetchRules() {
     const listDiv = document.getElementById('ruleList');
     const apiUrl = document.getElementById('epgApiUrl').value.replace(/\/$/, '');
-
     listDiv.innerHTML = '<p>ルールを取得中...</p>';
-
     try {
         // ★ limit: 0 (全件取得) を追加
-        const payload = { 
+        const payload = {
             epgApiBase: apiUrl,
-            limit: 0 
+            limit: 0
         };
-
         const res = await fetch('/proxy/rules', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-
         if (!res.ok) {
             const err = await res.json();
             throw new Error(err.error || res.statusText);
         }
-
         const data = await res.json();
         const rules = data.rules || [];
-
         renderRuleList(rules);
         log(`ルール一覧取得完了: ${rules.length}件`);
-
     } catch (e) {
         console.error(e);
         listDiv.innerHTML = `<p style="color:red;">取得エラー: ${e.message}</p>`;
         log(`ルール取得失敗: ${e.message}`);
     }
 }
-
 /**
- * ルール一覧をHTML表示 (クリックリンク追加版)
- */
+* ルール一覧をHTML表示 (クリックリンク追加版)
+*/
 function renderRuleList(rules) {
     const listDiv = document.getElementById('ruleList');
     listDiv.innerHTML = '';
-    
+
     // EPG API BASE URL はグローバル変数 EPG_API_BASE から取得
     if (typeof EPG_API_BASE === 'undefined' || !EPG_API_BASE) {
         // EPG_API_BASE が未定義の場合のフォールバック処理
         // ここではエラーログを出力するか、処理を中断します。
         // 実際には設定画面などで定義されている前提とします。
-        // return; 
+        // return;
     }
-    
+
     // 1. アクティブなルール(enable: true)のみを抽出
     const activeRules = rules.filter(r => r.reserveOption && r.reserveOption.enable === true);
-
     if (activeRules.length === 0) {
         listDiv.innerHTML = '<p style="color:#666; text-align:center; padding: 10px;">現在、有効な自動予約ルールはありません。</p>';
         return;
     }
-
     // IDの降順（新しい順）で表示
     activeRules.sort((a, b) => b.id - a.id).forEach(rule => {
         const sOpt = rule.searchOption || {};
         const reserveCount = (rule.reservesCnt !== undefined) ? rule.reservesCnt : 0;
-        
+
         // --- ルールクリック時のリンク先URL ---
         const ruleLinkUrl = `${EPG_API_BASE}/#/search?rule=${rule.id}`;
-
         // --- 表示内容の組み立て ---
         let mainCondition = "";
         let icon = "";
-        
+
         if (sOpt.keyword) {
             icon = "🔍"; // 検索
             mainCondition = `<span style="font-weight:bold; color:#333;">${escapeHtml(sOpt.keyword)}</span>`;
@@ -1317,34 +1260,30 @@ function renderRuleList(rules) {
             icon = "❓"; // その他
             mainCondition = `<span style="font-style:italic; color:#888;">条件なし</span>`;
         }
-
         // 除外キーワード
         let ignoreInfo = "";
         if (sOpt.ignoreKeyword) {
             ignoreInfo = `<div style="font-size:0.85em; color:#d9534f; margin-top:2px;">🚫 除外: ${escapeHtml(sOpt.ignoreKeyword)}</div>`;
         }
-
         // 放送局指定
         let channelInfo = "";
         if (sOpt.channelIds && sOpt.channelIds.length > 0) {
             channelInfo = `<span style="font-size:0.75em; color:#0056b3; margin-left:8px;">${sOpt.channelIds.length}局指定</span>`;
         }
-
         // --- HTML生成 ---
         const item = document.createElement('div');
         // style の変更: カーソルをポインターに変更
         item.style.cssText = "display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding:10px 0; cursor: pointer; transition: background-color 0.2s;";
-        
+
         // ★ クリックイベントの追加 (削除ボタンのクリックはバブリング防止で除外される前提)
         item.onclick = () => {
             window.open(ruleLinkUrl, '_blank'); // 別タブで開く
             // window.location.href = ruleLinkUrl; // 同一タブで開く場合はこちら
         };
-
         // ホバーエフェクトの追加 (CSSの代わり)
         item.onmouseover = function() { this.style.backgroundColor = '#f5f5f5'; };
         item.onmouseout = function() { this.style.backgroundColor = 'white'; };
-        
+
         item.innerHTML = `
             <div style="flex: 1; padding-right: 15px; overflow: hidden; pointer-events: none;">
                 <div style="font-size:1rem; line-height:1.4; word-break:break-all;">
@@ -1352,16 +1291,14 @@ function renderRuleList(rules) {
                 </div>
                 ${ignoreInfo}
             </div>
-
             <div style="flex-shrink: 0; display: flex; align-items: center; gap: 10px;">
                 <span style="font-size:0.85rem; color:#666; white-space:nowrap; pointer-events: none;">
                     予約: <b style="color:#333;">${reserveCount}</b>
                 </span>
-
                 <button onclick="deleteRule(${rule.id}); event.stopPropagation();" class="mini-btn" style="
-                    background-color: #f8f8f8; 
-                    color: #d9534f; 
-                    border: 1px solid #d9534f; 
+                    background-color: #f8f8f8;
+                    color: #d9534f;
+                    border: 1px solid #d9534f;
                     padding: 5px 10px;
                     font-size: 0.9rem;
                     border-radius: 4px;
@@ -1375,34 +1312,29 @@ function renderRuleList(rules) {
         `;
         listDiv.appendChild(item);
     });
-    
+
     // **注意**: deleteRule関数が呼び出されると、親要素のクリックイベントが意図せず発火する可能性があります。
     // そのため、削除ボタンの onclick ハンドラに event.stopPropagation(); を追加して、
     // 親要素 (item) へのイベント伝播を停止させる必要があります。
 }
-
 /**
- * ルール削除 (Proxy経由)
- */
+* ルール削除 (Proxy経由)
+*/
 async function deleteRule(ruleId) {
     if (!confirm(`削除しますか？`)) {
         return;
     }
-
     const apiUrl = document.getElementById('epgApiUrl').value.replace(/\/$/, '');
-
     try {
         const payload = {
             epgApiBase: apiUrl,
             ruleId: ruleId
         };
-
         const res = await fetch('/proxy/rules/delete', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-
         if (res.ok) {
             log(`ルール削除成功: ID ${ruleId}`);
             alert(`ルール ID ${ruleId} を削除しました。`);
@@ -1420,51 +1352,45 @@ async function deleteRule(ruleId) {
 async function loadReserveList() {
     const listDiv = document.getElementById('reserveList');
     const apiUrl = document.getElementById('epgApiUrl').value.replace(/\/$/, '');
-    
-    listDiv.innerHTML = '<p style="text-align:center; padding:10px;">読み込み中...</p>';
 
+    listDiv.innerHTML = '<p style="text-align:center; padding:10px;">読み込み中...</p>';
     try {
         const data = await fetchReservesViaProxy(apiUrl, 'reserves');
-        
+
         // ★ 修正：isSkip が true（除外済み）ではないものだけを抽出する
         const reserves = (data.reserves || []).filter(res => !res.isSkip);
-
         if (reserves.length === 0) {
             listDiv.innerHTML = '<p style="text-align:center; padding:10px;">有効な予約はありません。</p>';
             return;
         }
-
         let html = '<table style="width:100%; border-collapse:collapse; font-size:0.9em;">';
-	// loadReserveList関数内の loop 部分を以下に差し替えてください
+// loadReserveList関数内の loop 部分を以下に差し替えてください
+reserves.forEach(res => {
+    // 時刻の整形 (月/日 時:分)
+    const start = new Date(res.startAt);
+    const timeStr = `${start.getMonth()+1}/${start.getDate()} ${start.getHours()}:${String(start.getMinutes()).padStart(2, '0')}`;
 
-	reserves.forEach(res => {
-	    // 時刻の整形 (月/日 時:分)
-	    const start = new Date(res.startAt);
-	    const timeStr = `${start.getMonth()+1}/${start.getDate()} ${start.getHours()}:${String(start.getMinutes()).padStart(2, '0')}`;
-    
-	    html += `
+    html += `
     <tr style="border-bottom:1px solid #eee;">
         <td style="padding:8px 4px;">
             <div style="font-weight:bold;">${res.name}</div>
             <div style="font-size:0.8em; color:#666;">${timeStr}</div>
         </td>
         <td style="width:50px; text-align:right;">
-            <button onclick="deleteReserve(${res.id}, '${res.name.replace(/'/g, "\\'")}')" 
+            <button onclick="deleteReserve(${res.id}, '${res.name.replace(/'/g, "\\'")}')"
                     style="background:#dc3545; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">
                 削除
             </button>
         </td>
     </tr>`;
-	});
+});
         html += '</table>';
         listDiv.innerHTML = html;
-
     } catch (error) {
         console.error('Fetch error:', error);
         listDiv.innerHTML = `<p style="color:red; text-align:center; padding:10px;">取得失敗: ${error.message}</p>`;
     }
 }
-
 </script>
 </body>
 </html>

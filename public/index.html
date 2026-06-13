@@ -1401,11 +1401,22 @@ async function loadReserveList() {
             return;
         }
         let html = '<table style="width:100%; border-collapse:collapse; font-size:0.9em;">';
-// loadReserveList関数内の loop 部分を以下に差し替えてください
+
 reserves.forEach(res => {
-    // 時刻の整形 (月/日 時:分)
+    // 開始時刻と終了時刻の整形
     const start = new Date(res.startAt);
-    const timeStr = `${start.getMonth()+1}/${start.getDate()} ${start.getHours()}:${String(start.getMinutes()).padStart(2, '0')}`;
+    const end = new Date(res.endAt);
+    
+    const startMonth = start.getMonth() + 1;
+    const startDate = start.getDate();
+    const startHours = String(start.getHours()).padStart(2, '0');
+    const startMinutes = String(start.getMinutes()).padStart(2, '0');
+    
+    const endHours = String(end.getHours()).padStart(2, '0');
+    const endMinutes = String(end.getMinutes()).padStart(2, '0');
+    
+    // 6/13 17:30-19:00 の形式
+    const timeStr = `${startMonth}/${startDate} ${startHours}:${startMinutes}-${endHours}:${endMinutes}`;
 
     html += `
     <tr style="border-bottom:1px solid #eee;">
@@ -1420,7 +1431,7 @@ reserves.forEach(res => {
             </button>
         </td>
     </tr>`;
-});
+});	      
         html += '</table>';
         listDiv.innerHTML = html;
     } catch (error) {

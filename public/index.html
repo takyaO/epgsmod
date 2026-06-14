@@ -1395,7 +1395,7 @@ async function loadReserveList() {
         const data = await fetchReservesViaProxy(apiUrl, 'reserves');
 
         // ★ 修正：isSkip が true（除外済み）ではないものだけを抽出する
-        const reserves = (data.reserves || []).filter(res => !res.isSkip);
+        const reserves = (data.reserves || []).filter(res => res.isSkip === false && res.isOverlap === false);
         if (reserves.length === 0) {
             listDiv.innerHTML = '<p style="text-align:center; padding:10px;">有効な予約はありません。</p>';
             return;

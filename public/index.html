@@ -1076,30 +1076,103 @@ async function checkConflicts() {
         logDiv.innerText = `エラー: ${err.message}`;
     }
 }
+
 /**
 * プロキシ経由で予約リストを取得するヘルパー関数
+* @param {string} epgApiBase - APIのベースURL
+* @param {string} type - 'reserves', 'conflict', 'normal' など
+* @param {number} customLimit - 取得件数の上限（省略時はデフォルト値）
 */
-
-async function fetchReservesViaProxy(epgApiBase, type) {
-    // type が 'reserves' の場合は limit や type パラメータを送らないように制御
-    const isNormalReserves = (type === 'reserves');
-    const limit = type === 'conflict' ? 50 : 2000;
+async function fetchReservesViaProxy(epgApiBase, type, customLimit) {
+    // デフォルト値の設定: conflictは50件、それ以外は2000件（またはcustomLimit）
+    const limit = customLimit || (type === 'conflict' ? 50 : 2000);
+    
     const payload = {
         epgApiBase: epgApiBase,
-        // type が 'reserves' 以外の場合のみ type と limit を含める
-        ...(isNormalReserves ? {} : { type: type, limit: limit })
+        // type が 'reserves' の場合は type パラメータを送信しない（EPGStation仕様に合わせる）
+        // ただし limit は常に送信可能
+        ...(type === 'reserves' ? {} : { type: type }),
+        limit: limit
     };
+    
     const res = await fetch('/proxy/reserves', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
     });
+    
     if (!res.ok) {
         const errText = await res.text();
         throw new Error(`Server Error (${res.status}): ${errText}`);
     }
+    
     return await res.json();
 }
+
+// 「6. 予約一覧」を表示するためのメイン関数
+async function loadReserveList() {
+    const listDiv = document.getElementById('reserveList');
+    const apiUrl = document.getElementById('epgApiUrl').value.replace(/\/$/, '');
+    
+    listDiv.innerHTML = '<p style="text-align:center; padding:10px;">読み込み中...</p>';
+    log(`予約一覧取得開始`);
+    
+    try {
+        // ★ 取得数を増やすため limit を 1000 に設定（必要に応じて調整可能）
+        const data = await fetchReservesViaProxy(apiUrl, 'reserves', 1000);
+        const allReserves = data.reserves || [];
+        
+        // isSkip が true（除外済み）ではないものだけを抽出する
+        const reserves = allReserves.filter(res => res.isSkip === false && res.isOverlap === false);
+        
+        // ★ ログに取得結果を詳細記録
+        log(`予約一覧取得成功: 全${allReserves.length}件中、有効予約${reserves.length}件を表示 `);
+        
+        if (reserves.length === 0) {
+            listDiv.innerHTML = '<p style="text-align:center; padding:10px;">有効な予約はありません。</p>';
+            return;
+        }
+        
+        let html = '<table style="width:100%; border-collapse:collapse; font-size:0.9em;">';
+        reserves.forEach(res => {
+            // 開始時刻と終了時刻の整形
+            const start = new Date(res.startAt);
+            const end = new Date(res.endAt);
+
+            const startMonth = start.getMonth() + 1;
+            const startDate = start.getDate();
+            const startHours = String(start.getHours()).padStart(2, '0');
+            const startMinutes = String(start.getMinutes()).padStart(2, '0');
+
+            const endHours = String(end.getHours()).padStart(2, '0');
+            const endMinutes = String(end.getMinutes()).padStart(2, '0');
+
+            // 6/13 17:30-19:00 の形式
+            const timeStr = `${startMonth}/${startDate} ${startHours}:${startMinutes}-${endHours}:${endMinutes}`;
+            html += `
+            <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:8px 4px;">
+                    <div style="font-weight:bold;">${res.name}</div>
+                    <div style="font-size:0.8em; color:#666;">${timeStr}</div>
+                </td>
+                <td style="width:50px; text-align:right;">
+                    <button onclick="deleteReserve(${res.id}, '${res.name.replace(/'/g, "\\'")}')"
+                            style="background:#dc3545; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">
+                        削除
+                    </button>
+                </td>
+            </tr>`;
+        });       
+        html += '</table>';
+        listDiv.innerHTML = html;
+        
+    } catch (error) {
+        console.error('Fetch error:', error);
+        // ★ エラー時も詳細をログに記録
+        log(`予約一覧取得失敗: ${error.message} (${apiUrl})`);
+        listDiv.innerHTML = `<p style="color:red; text-align:center; padding:10px;">取得失敗: ${error.message}</p>`;
+    }
+}	  
 /**
 * 文字列に含まれるHTML特殊文字をエスケープする
 */
@@ -1383,60 +1456,6 @@ async function deleteRule(ruleId) {
     } catch (e) {
         alert(`削除失敗: ${e.message}`);
         log(`ルール削除失敗: ${e.message}`);
-    }
-}
-// 「6. 予約一覧」を表示するためのメイン関数
-async function loadReserveList() {
-    const listDiv = document.getElementById('reserveList');
-    const apiUrl = document.getElementById('epgApiUrl').value.replace(/\/$/, '');
-
-    listDiv.innerHTML = '<p style="text-align:center; padding:10px;">読み込み中...</p>';
-    try {
-        const data = await fetchReservesViaProxy(apiUrl, 'reserves');
-
-        // ★ 修正：isSkip が true（除外済み）ではないものだけを抽出する
-        const reserves = (data.reserves || []).filter(res => res.isSkip === false && res.isOverlap === false);
-        if (reserves.length === 0) {
-            listDiv.innerHTML = '<p style="text-align:center; padding:10px;">有効な予約はありません。</p>';
-            return;
-        }
-        let html = '<table style="width:100%; border-collapse:collapse; font-size:0.9em;">';
-
-reserves.forEach(res => {
-    // 開始時刻と終了時刻の整形
-    const start = new Date(res.startAt);
-    const end = new Date(res.endAt);
-    
-    const startMonth = start.getMonth() + 1;
-    const startDate = start.getDate();
-    const startHours = String(start.getHours()).padStart(2, '0');
-    const startMinutes = String(start.getMinutes()).padStart(2, '0');
-    
-    const endHours = String(end.getHours()).padStart(2, '0');
-    const endMinutes = String(end.getMinutes()).padStart(2, '0');
-    
-    // 6/13 17:30-19:00 の形式
-    const timeStr = `${startMonth}/${startDate} ${startHours}:${startMinutes}-${endHours}:${endMinutes}`;
-
-    html += `
-    <tr style="border-bottom:1px solid #eee;">
-        <td style="padding:8px 4px;">
-            <div style="font-weight:bold;">${res.name}</div>
-            <div style="font-size:0.8em; color:#666;">${timeStr}</div>
-        </td>
-        <td style="width:50px; text-align:right;">
-            <button onclick="deleteReserve(${res.id}, '${res.name.replace(/'/g, "\\'")}')"
-                    style="background:#dc3545; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">
-                削除
-            </button>
-        </td>
-    </tr>`;
-});	      
-        html += '</table>';
-        listDiv.innerHTML = html;
-    } catch (error) {
-        console.error('Fetch error:', error);
-        listDiv.innerHTML = `<p style="color:red; text-align:center; padding:10px;">取得失敗: ${error.message}</p>`;
     }
 }
 </script>

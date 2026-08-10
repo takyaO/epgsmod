@@ -1,6 +1,6 @@
 {
   "name": "epgsmod",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "EPGStation 補助ツール（EPGSmod） - Express + Axios client",
   "main": "server.js",
   "scripts": {
@@ -19,6 +19,7 @@
   "license": "MIT",
   "dependencies": {
     "axios": "^1.13.2",
-    "express": "^4.22.1"
+    "express": "^4.22.1",
+    "prettier": "^3.9.6"
   }
 }

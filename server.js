@@ -1,266 +1,281 @@
 // server.js
-process.on("uncaughtException", err => {
+process.on("uncaughtException", (err) => {
   console.error("UNCAUGHT EXCEPTION:", err);
 });
 
-process.on("unhandledRejection", err => {
+process.on("unhandledRejection", (err) => {
   console.error("UNHANDLED REJECTION:", err);
 });
 
-const express = require('express');
-const axios = require('axios');
-const path = require('path');
+const express = require("express");
+const axios = require("axios");
+const path = require("path");
 const app = express();
 //const PORT = 3001;
 // 環境変数 PORT が設定されていればそれを使用し、なければ 3001 をデフォルトとして使用する
 const PORT = process.env.PORT || 3001;
-const { URL } = require('url');
+const { URL } = require("url");
 
 app.use(express.json());
 
 // public 配信
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, "public")));
 
 // =========================
 // 検索 API プロキシ
 // =========================
-app.post('/proxy/search', function(req, res) {
-    // ★ 修正: クライアントのペイロードから EPG URLを取得
-    const clientEpgApiBase = req.body.epgApiBase;
-    if (!isAllowedEpgApiBase(clientEpgApiBase)) {
-        console.error(`SSRF Risk Detected: ${clientEpgApiBase}`);
-        return res.status(403).json({ error: "指定されたEPG API URLは許可されていません。" });
-    }
-    const bodyForEpgstation = { ...req.body };
+app.post("/proxy/search", function (req, res) {
+  // ★ 修正: クライアントのペイロードから EPG URLを取得
+  const clientEpgApiBase = req.body.epgApiBase;
+  if (!isAllowedEpgApiBase(clientEpgApiBase)) {
+    console.error(`SSRF Risk Detected: ${clientEpgApiBase}`);
+    return res
+      .status(403)
+      .json({ error: "指定されたEPG API URLは許可されていません。" });
+  }
+  const bodyForEpgstation = { ...req.body };
 
-    delete bodyForEpgstation.epgApiBase; // EPGStationへは渡さない
+  delete bodyForEpgstation.epgApiBase; // EPGStationへは渡さない
 
-    if (!clientEpgApiBase) {
-        return res.status(400).json({ error: "EPG API URLが指定されていません" });
-    }
+  if (!clientEpgApiBase) {
+    return res.status(400).json({ error: "EPG API URLが指定されていません" });
+  }
 
-    axios.post(clientEpgApiBase + '/api/schedules/search', bodyForEpgstation)
-        .then(function(r){
-            res.json(r.data);
-        })
-        .catch(function(e){
-            // ... (エラー処理)
-            res.status(500).json({ error: "EPGStation への接続に失敗しました" });
-        });
+  axios
+    .post(clientEpgApiBase + "/api/schedules/search", bodyForEpgstation)
+    .then(function (r) {
+      res.json(r.data);
+    })
+    .catch(function (e) {
+      // ... (エラー処理)
+      res.status(500).json({ error: "EPGStation への接続に失敗しました" });
+    });
 });
 
 // =========================
 // ルール追加 API
 // =========================
-app.post('/proxy/rule', function(req, res) {
-    // ★ 修正: クライアントのペイロードから EPG URLを取得
-    const clientEpgApiBase = req.body.epgApiBase;
-    if (!isAllowedEpgApiBase(clientEpgApiBase)) {
-        console.error(`SSRF Risk Detected: ${clientEpgApiBase}`);
-        return res.status(403).json({ error: "指定されたEPG API URLは許可されていません。" });
-    }
-    const bodyForEpgstation = { ...req.body };
-    delete bodyForEpgstation.epgApiBase; // EPGStationへは渡さない
+app.post("/proxy/rule", function (req, res) {
+  // ★ 修正: クライアントのペイロードから EPG URLを取得
+  const clientEpgApiBase = req.body.epgApiBase;
+  if (!isAllowedEpgApiBase(clientEpgApiBase)) {
+    console.error(`SSRF Risk Detected: ${clientEpgApiBase}`);
+    return res
+      .status(403)
+      .json({ error: "指定されたEPG API URLは許可されていません。" });
+  }
+  const bodyForEpgstation = { ...req.body };
+  delete bodyForEpgstation.epgApiBase; // EPGStationへは渡さない
 
-    if (!clientEpgApiBase) {
-        return res.status(400).json({ error: "EPG API URLが指定されていません" });
-    }
-    
-    axios.post(clientEpgApiBase + '/api/rules/keyword', bodyForEpgstation)
-        .then(function(r){
-            res.json(r.data);
-        })
-        .catch(function(e){
-            // ... (エラー処理)
-            res.status(500).json({ error: "ルールの追加に失敗しました" });
-        });
+  if (!clientEpgApiBase) {
+    return res.status(400).json({ error: "EPG API URLが指定されていません" });
+  }
+
+  axios
+    .post(clientEpgApiBase + "/api/rules/keyword", bodyForEpgstation)
+    .then(function (r) {
+      res.json(r.data);
+    })
+    .catch(function (e) {
+      // ... (エラー処理)
+      res.status(500).json({ error: "ルールの追加に失敗しました" });
+    });
 });
 
 // 1. 予約リスト取得用プロキシ
-app.post('/proxy/reserves', async (req, res) => {
-    try {
-        const { epgApiBase, type, limit } = req.body;
+app.post("/proxy/reserves", async (req, res) => {
+  try {
+    const { epgApiBase, type, limit } = req.body;
 
-        if (!isAllowedEpgApiBase(epgApiBase)) {
-            return res.status(403).json({ error: "Forbidden" });
-        }
-
-        // 基本のURL
-        let targetUrl = epgApiBase + "/api/reserves?isHalfWidth=false";
-
-        // type や limit が「存在し、かつ空でない」場合のみクエリに追加
-        if (type) {
-            targetUrl += "&type=" + type;
-        }
-        if (limit) {
-            targetUrl += "&limit=" + limit;
-        }
-
-        console.log("Proxy fetching reserves: " + targetUrl);
-
-        const apiRes = await axios.get(targetUrl);
-        res.json(apiRes.data);
-    } catch (error) {
-        console.error("Proxy reserves Error:", error.message);
-        
-        // オプショナルチェイニングを使わない安全なエラーハンドリング
-        var statusCode = (error.response && error.response.status) ? error.response.status : 500;
-        res.status(statusCode).send(error.message);
+    if (!isAllowedEpgApiBase(epgApiBase)) {
+      return res.status(403).json({ error: "Forbidden" });
     }
+
+    // 基本のURL
+    let targetUrl = epgApiBase + "/api/reserves?isHalfWidth=false";
+
+    // type や limit が「存在し、かつ空でない」場合のみクエリに追加
+    if (type) {
+      targetUrl += "&type=" + type;
+    }
+    if (limit) {
+      targetUrl += "&limit=" + limit;
+    }
+
+    console.log("Proxy fetching reserves: " + targetUrl);
+
+    const apiRes = await axios.get(targetUrl);
+    res.json(apiRes.data);
+  } catch (error) {
+    console.error("Proxy reserves Error:", error.message);
+
+    // オプショナルチェイニングを使わない安全なエラーハンドリング
+    var statusCode =
+      error.response && error.response.status ? error.response.status : 500;
+    res.status(statusCode).send(error.message);
+  }
 });
 
 // 2. 予約削除用プロキシ
-app.post('/proxy/reserves/delete', async (req, res) => {
-    try {
-        const { epgApiBase, reserveId } = req.body;
-	if (!isAllowedEpgApiBase(epgApiBase)) {
-            console.error(`SSRF Risk Detected in /proxy/rules: ${epgApiBase}`);
-            return res.status(403).json({ error: "指定されたEPG API URLは許可されていません。" });
-        }
-        const targetUrl = `${epgApiBase}/api/reserves/${reserveId}`;
-        
-        console.log(`Proxy deleting: ${targetUrl}`);
-
-        // ★ axios.delete を使用
-        const apiRes = await axios.delete(targetUrl);
-        
-        // axiosは成功時 status: 200, 204 など
-        if (apiRes.status >= 200 && apiRes.status < 300) {
-            res.status(200).send("OK");
-        } else {
-            // ここには通常到達しませんが、念のため
-            res.status(apiRes.status).send("Failed");
-        }
-    } catch (error) {
-        console.error("Proxy Delete Error:", error.message);
-        // EPGStation側で404などが返された場合、axiosはエラーを投げるためここで処理
-        res.status(500).json({ error: error.message });
+app.post("/proxy/reserves/delete", async (req, res) => {
+  try {
+    const { epgApiBase, reserveId } = req.body;
+    if (!isAllowedEpgApiBase(epgApiBase)) {
+      console.error(`SSRF Risk Detected in /proxy/rules: ${epgApiBase}`);
+      return res
+        .status(403)
+        .json({ error: "指定されたEPG API URLは許可されていません。" });
     }
+    const targetUrl = `${epgApiBase}/api/reserves/${reserveId}`;
+
+    console.log(`Proxy deleting: ${targetUrl}`);
+
+    // ★ axios.delete を使用
+    const apiRes = await axios.delete(targetUrl);
+
+    // axiosは成功時 status: 200, 204 など
+    if (apiRes.status >= 200 && apiRes.status < 300) {
+      res.status(200).send("OK");
+    } else {
+      // ここには通常到達しませんが、念のため
+      res.status(apiRes.status).send("Failed");
+    }
+  } catch (error) {
+    console.error("Proxy Delete Error:", error.message);
+    // EPGStation側で404などが返された場合、axiosはエラーを投げるためここで処理
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // 4. ルール一覧取得用プロキシ (予約数カウント機能付き)
 // 4. ルール一覧取得用プロキシ
-app.post('/proxy/rules', async (req, res) => {
-    try {
-        // ★ req.body から limit を受け取る (デフォルトは全件の 0 に設定)
-        const { epgApiBase, limit = 0 } = req.body;
+app.post("/proxy/rules", async (req, res) => {
+  try {
+    // ★ req.body から limit を受け取る (デフォルトは全件の 0 に設定)
+    const { epgApiBase, limit = 0 } = req.body;
 
-        if (!isAllowedEpgApiBase(epgApiBase)) {
-            console.error(`SSRF Risk Detected: ${epgApiBase}`);
-            return res.status(403).json({ error: "許可されていません。" });
-        }
-
-        console.log(`[Proxy] Fetching Rules (limit=${limit}) & Reserves count...`);
-
-        // ルール一覧と予約一覧を並列で取得
-        const [rulesRes, reservesRes] = await Promise.all([
-            // ★ 固定の limit=0 ではなく、受け取った limit を使用
-            axios.get(`${epgApiBase}/api/rules?limit=${limit}`),
-
-            // 予約の方は集計用なので、引き続き十分に大きな値を指定
-            axios.get(`${epgApiBase}/api/reserves?limit=9999&type=normal&isHalfWidth=true`)
-        ]);
-
-        const rules = rulesRes.data.rules || rulesRes.data;
-        const reserves = reservesRes.data.reserves || reservesRes.data;
-
-        // --- 以下、既存の集計処理と同じ ---
-        const countMap = {};
-        reserves.forEach(r => {
-            if (r.ruleId) {
-                countMap[r.ruleId] = (countMap[r.ruleId] || 0) + 1;
-            }
-        });
-
-        const enrichedRules = rules.map(rule => ({
-            ...rule,
-            reservesCnt: countMap[rule.id] || 0
-        }));
-
-        res.json({ rules: enrichedRules });
-
-    } catch (error) {
-        console.error("Proxy Rules Error:", error.message);
-        res.status(500).json({ error: error.message });
+    if (!isAllowedEpgApiBase(epgApiBase)) {
+      console.error(`SSRF Risk Detected: ${epgApiBase}`);
+      return res.status(403).json({ error: "許可されていません。" });
     }
+
+    console.log(`[Proxy] Fetching Rules (limit=${limit}) & Reserves count...`);
+
+    // ルール一覧と予約一覧を並列で取得
+    const [rulesRes, reservesRes] = await Promise.all([
+      // ★ 固定の limit=0 ではなく、受け取った limit を使用
+      axios.get(`${epgApiBase}/api/rules?limit=${limit}`),
+
+      // 予約の方は集計用なので、引き続き十分に大きな値を指定
+      axios.get(
+        `${epgApiBase}/api/reserves?limit=9999&type=normal&isHalfWidth=true`,
+      ),
+    ]);
+
+    const rules = rulesRes.data.rules || rulesRes.data;
+    const reserves = reservesRes.data.reserves || reservesRes.data;
+
+    // --- 以下、既存の集計処理と同じ ---
+    const countMap = {};
+    reserves.forEach((r) => {
+      if (r.ruleId) {
+        countMap[r.ruleId] = (countMap[r.ruleId] || 0) + 1;
+      }
+    });
+
+    const enrichedRules = rules.map((rule) => ({
+      ...rule,
+      reservesCnt: countMap[rule.id] || 0,
+    }));
+
+    res.json({ rules: enrichedRules });
+  } catch (error) {
+    console.error("Proxy Rules Error:", error.message);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // 5. ルール削除用プロキシ
-app.post('/proxy/rules/delete', async (req, res) => {
-    try {
-        const { epgApiBase, ruleId } = req.body;
-	if (!isAllowedEpgApiBase(epgApiBase)) {
-            console.error(`SSRF Risk Detected in /proxy/rules: ${epgApiBase}`);
-            return res.status(403).json({ error: "指定されたEPG API URLは許可されていません。" });
-        }
-        const targetUrl = `${epgApiBase}/api/rules/${ruleId}`;
-        
-        console.log(`[Proxy] Deleting Rule: ${targetUrl}`);
-        
-        const apiRes = await axios.delete(targetUrl);
-        
-        if (apiRes.status >= 200 && apiRes.status < 300) {
-            res.status(200).json({ success: true });
-        } else {
-            res.status(apiRes.status).json({ error: "Failed to delete" });
-        }
-    } catch (error) {
-        console.error("Proxy Delete Rule Error:", error.message);
-        if (axios.isAxiosError(error) && error.response) {
-            res.status(error.response.status).json({ error: error.response.data.message || error.message });
-        } else {
-            res.status(500).json({ error: error.message });
-        }
+app.post("/proxy/rules/delete", async (req, res) => {
+  try {
+    const { epgApiBase, ruleId } = req.body;
+    if (!isAllowedEpgApiBase(epgApiBase)) {
+      console.error(`SSRF Risk Detected in /proxy/rules: ${epgApiBase}`);
+      return res
+        .status(403)
+        .json({ error: "指定されたEPG API URLは許可されていません。" });
     }
+    const targetUrl = `${epgApiBase}/api/rules/${ruleId}`;
+
+    console.log(`[Proxy] Deleting Rule: ${targetUrl}`);
+
+    const apiRes = await axios.delete(targetUrl);
+
+    if (apiRes.status >= 200 && apiRes.status < 300) {
+      res.status(200).json({ success: true });
+    } else {
+      res.status(apiRes.status).json({ error: "Failed to delete" });
+    }
+  } catch (error) {
+    console.error("Proxy Delete Rule Error:", error.message);
+    if (axios.isAxiosError(error) && error.response) {
+      res
+        .status(error.response.status)
+        .json({ error: error.response.data.message || error.message });
+    } else {
+      res.status(500).json({ error: error.message });
+    }
+  }
 });
 
 // 6. ルール追加用プロキシ
-app.post('/proxy/rules/add', async (req, res) => {
-    try {
-        const { epgApiBase, rulePayload } = req.body;
-	if (!isAllowedEpgApiBase(epgApiBase)) {
-            console.error(`SSRF Risk Detected in /proxy/rules: ${epgApiBase}`);
-            return res.status(403).json({ error: "指定されたEPG API URLは許可されていません。" });
-        }
-        const targetUrl = `${epgApiBase}/api/rules`; // EPGStationのAPI URL
-        
-        console.log(`[Proxy] Adding Rule: ${targetUrl}`);
-        
-        // EPGStationのAPIを叩く (POSTメソッドでデータを送信)
-        const apiRes = await axios.post(targetUrl, rulePayload);
-        
-        // EPGStationの応答データには、作成されたルールのIDなどが含まれる
-        res.json(apiRes.data);
-        
-    } catch (error) {
-        console.error("Proxy Add Rule Error:", error.message);
-        
-        if (axios.isAxiosError(error) && error.response) {
-            res.status(error.response.status).json({ 
-                error: `EPGStation API Error: ${error.response.statusText}`,
-                details: error.response.data
-            });
-        } else {
-            res.status(500).json({ error: error.message });
-        }
+app.post("/proxy/rules/add", async (req, res) => {
+  try {
+    const { epgApiBase, rulePayload } = req.body;
+    if (!isAllowedEpgApiBase(epgApiBase)) {
+      console.error(`SSRF Risk Detected in /proxy/rules: ${epgApiBase}`);
+      return res
+        .status(403)
+        .json({ error: "指定されたEPG API URLは許可されていません。" });
     }
+    const targetUrl = `${epgApiBase}/api/rules`; // EPGStationのAPI URL
+
+    console.log(`[Proxy] Adding Rule: ${targetUrl}`);
+
+    // EPGStationのAPIを叩く (POSTメソッドでデータを送信)
+    const apiRes = await axios.post(targetUrl, rulePayload);
+
+    // EPGStationの応答データには、作成されたルールのIDなどが含まれる
+    res.json(apiRes.data);
+  } catch (error) {
+    console.error("Proxy Add Rule Error:", error.message);
+
+    if (axios.isAxiosError(error) && error.response) {
+      res.status(error.response.status).json({
+        error: `EPGStation API Error: ${error.response.statusText}`,
+        details: error.response.data,
+      });
+    } else {
+      res.status(500).json({ error: error.message });
+    }
+  }
 });
 
 // チャンネル一覧取得用プロキシ
-app.post('/proxy/channels', async (req, res) => {
-    try {
-        const { epgApiBase } = req.body;
-        if (!isAllowedEpgApiBase(epgApiBase)) {
-            return res.status(403).json({ error: "Forbidden" });
-        }
-        const targetUrl = `${epgApiBase}/api/channels`;
-        console.log(`Proxy fetching channels: ${targetUrl}`);
-        const apiRes = await axios.get(targetUrl);
-        res.json(apiRes.data);
-    } catch (error) {
-        console.error("Proxy channels Error:", error.message);
-        res.status(500).json({ error: error.message });
+app.post("/proxy/channels", async (req, res) => {
+  try {
+    const { epgApiBase } = req.body;
+    if (!isAllowedEpgApiBase(epgApiBase)) {
+      return res.status(403).json({ error: "Forbidden" });
     }
+    const targetUrl = `${epgApiBase}/api/channels`;
+    console.log(`Proxy fetching channels: ${targetUrl}`);
+    const apiRes = await axios.get(targetUrl);
+    res.json(apiRes.data);
+  } catch (error) {
+    console.error("Proxy channels Error:", error.message);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 /**
@@ -270,61 +285,136 @@ app.post('/proxy/channels', async (req, res) => {
  * @returns {boolean} - 許可されていれば true
  */
 function isAllowedEpgApiBase(url) {
-    if (!url) return false;
+  if (!url) return false;
 
-    try {
-        const parsedUrl = new URL(url);
-        const hostname = parsedUrl.hostname;
+  try {
+    const parsedUrl = new URL(url);
+    const hostname = parsedUrl.hostname;
 
-        // 1. 許可するホスト名のリスト
-        const allowedHosts = [
-            'localhost',
-            '127.0.0.1',
-            // EPGStationの公式なホスト名などがあればここに追加
-        ];
-        if (allowedHosts.includes(hostname)) {
-            return true;
-        }
-
-        // 2. プライベートIPアドレス範囲のチェック (正規表現)
-        // 以下のプライベートIP範囲は、IETF RFC 1918 (IPv4) および IETF RFC 6890 (特別なアドレス) に基づいています。
-        
-        // 正規表現は文字列として定義
-        const privateIpRanges = [
-            // RFC 1918 (標準プライベートIP)
-            /^192\.168\./,       // Class C: 192.168.0.0/16
-            /^10\./,             // Class A: 10.0.0.0/8
-            /^172\.(1[6-9]|2[0-9]|3[0-1])\./, // Class B: 172.16.0.0/12
-            
-            // TailscaleのIP範囲 (CGNAT 100.64.0.0/10 の一部を使用)
-            /^100\.(6[4-9]|[7-9][0-9]|1[0-2][0-7])\./, // 100.64.0.0/10 (厳密には 100.64.0.0 から 100.127.255.255)
-                                                      // ここでは範囲の先頭部分をカバー
-            
-            // その他の特殊/ローカルループバック
-            /^127\./,            // ループバック: 127.0.0.0/8
-            /^(0|169\.254)\./,   // 0.0.0.0/8, 169.254.0.0/16 (Link-Local)
-        ];
-
-        // IPアドレスとして有効かチェック
-        if (privateIpRanges.some(regex => regex.test(hostname))) {
-            return true;
-        }
-
-    } catch (e) {
-        // URLが不正な形式の場合
-        console.error("URL解析エラー:", e.message);
+    // 1. 許可するホスト名のリスト
+    const allowedHosts = [
+      "localhost",
+      "127.0.0.1",
+      // EPGStationの公式なホスト名などがあればここに追加
+    ];
+    if (allowedHosts.includes(hostname)) {
+      return true;
     }
 
-    return false;
+    // 2. プライベートIPアドレス範囲のチェック (正規表現)
+    // 以下のプライベートIP範囲は、IETF RFC 1918 (IPv4) および IETF RFC 6890 (特別なアドレス) に基づいています。
+
+    // 正規表現は文字列として定義
+    const privateIpRanges = [
+      // RFC 1918 (標準プライベートIP)
+      /^192\.168\./, // Class C: 192.168.0.0/16
+      /^10\./, // Class A: 10.0.0.0/8
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./, // Class B: 172.16.0.0/12
+
+      // TailscaleのIP範囲 (CGNAT 100.64.0.0/10 の一部を使用)
+      /^100\.(6[4-9]|[7-9][0-9]|1[0-2][0-7])\./, // 100.64.0.0/10 (厳密には 100.64.0.0 から 100.127.255.255)
+      // ここでは範囲の先頭部分をカバー
+
+      // その他の特殊/ローカルループバック
+      /^127\./, // ループバック: 127.0.0.0/8
+      /^(0|169\.254)\./, // 0.0.0.0/8, 169.254.0.0/16 (Link-Local)
+    ];
+
+    // IPアドレスとして有効かチェック
+    if (privateIpRanges.some((regex) => regex.test(hostname))) {
+      return true;
+    }
+  } catch (e) {
+    // URLが不正な形式の場合
+    console.error("URL解析エラー:", e.message);
+  }
+
+  return false;
 }
+
+// 番組表取得用プロキシ
+app.post("/proxy/schedules", async (req, res) => {
+  try {
+    const { epgApiBase, startAt, endAt } = req.body;
+    if (!isAllowedEpgApiBase(epgApiBase)) {
+      console.error(`SSRF Risk Detected in /proxy/schedules: ${epgApiBase}`);
+      return res
+        .status(403)
+        .json({ error: "指定されたEPG API URLは許可されていません。" });
+    }
+
+    const targetUrl = `${epgApiBase}/api/schedules?startAt=${startAt}&endAt=${endAt}&GR=true&BS=false&CS=false&isHalfWidth=false&SKY=false`;
+    console.log(`[Proxy] Fetching Schedules: ${targetUrl}`);
+
+    const apiRes = await axios.get(targetUrl);
+    res.json(apiRes.data);
+  } catch (error) {
+    console.error("Proxy Schedules Error:", error.message);
+    if (axios.isAxiosError(error) && error.response) {
+      res
+        .status(error.response.status)
+        .json({ error: error.response.data.message || error.message });
+    } else {
+      res.status(500).json({ error: error.message });
+    }
+  }
+});
+
+// 予約追加用プロキシ（おすすめ機能用）
+app.post("/proxy/reserves/add", async (req, res) => {
+  try {
+    const { epgApiBase, programId, option } = req.body;
+
+    if (!isAllowedEpgApiBase(epgApiBase)) {
+      console.error(`SSRF Risk in /proxy/reserves/add: ${epgApiBase}`);
+      return res
+        .status(403)
+        .json({ error: "指定されたEPG API URLは許可されていません。" });
+    }
+
+    if (!programId) {
+      return res.status(400).json({ error: "programIdが指定されていません" });
+    }
+
+    // Swagger: POST /api/reserves （パスパラメータなし、bodyにprogramId含む）
+    const targetUrl = `${epgApiBase}/api/reserves`;
+
+    // Swagger仕様に準拠したリクエストボディ構築
+    const requestBody = {
+      programId: Number(programId), // 数値に変換
+      allowEndLack: option?.allowEndLack ?? true,
+      tags: option?.tags ?? [0],
+      // 必要に応じて他のオプションもマージ可能
+      ...(option?.saveOption && { saveOption: option.saveOption }),
+      ...(option?.encodeOption && { encodeOption: option.encodeOption }),
+      ...(option?.timeSpecifiedOption && {
+        timeSpecifiedOption: option.timeSpecifiedOption,
+      }),
+    };
+
+    console.log(`[Proxy] Adding Reserve: ${targetUrl}`, requestBody);
+
+    const apiRes = await axios.post(targetUrl, requestBody);
+    res.json(apiRes.data);
+  } catch (error) {
+    console.error("Proxy Add Reserve Error:", error.message);
+    if (axios.isAxiosError(error) && error.response) {
+      res.status(error.response.status).json({
+        error: error.response.data.message || error.message,
+        details: error.response.data,
+      });
+    } else {
+      res.status(500).json({ error: error.message });
+    }
+  }
+});
 
 // =========================
 // 起動
 // =========================
-app.listen(PORT, '0.0.0.0', function() {
-  console.log('-------------------------------------------');
-  console.log('Server running at: http://localhost:' + PORT);
-  console.log('Target EPGStation: クライアント側で設定'); 
-  console.log('-------------------------------------------');
+app.listen(PORT, "0.0.0.0", function () {
+  console.log("-------------------------------------------");
+  console.log("Server running at: http://localhost:" + PORT);
+  console.log("Target EPGStation: クライアント側で設定");
+  console.log("-------------------------------------------");
 });
-

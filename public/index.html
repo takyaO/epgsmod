@@ -702,23 +702,34 @@
         loadApiUrl();
         updateDatalist();
       });
-      function checkApiUrl() {
+      async function checkApiUrl() {
         const inputElement = document.getElementById("epgApiUrl");
         const url = inputElement.value.trim().replace(/\/$/, "");
-
         if (!url) {
           alert("EPG API URLを入力してください。");
           return;
         }
         try {
-          new URL(url);
-          log(`API URL確認: ${url} にジャンプします`);
-          window.open(url, "_blank");
+          new URL(url); // URL形式チェックのみ
+          log(`API URL確認: ${url} をテスト中...`);
+
+          // プロキシ経由で接続確認（ブラウザ→EPGSmod→EPGStation）
+          const res = await fetch("/proxy/test", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ epgApiBase: url }),
+          });
+
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || "接続失敗");
+          }
+
+          log(`API URL確認成功: ${url}`);
+          alert("接続成功しました！");
         } catch (e) {
-          log(`API URL確認エラー: ${url} は無効なURLです。`);
-          alert(
-            "入力されたURLが不正な形式です。HTTPまたはHTTPSで始まる有効なURLを入力してください。",
-          );
+          log(`API URL確認エラー: ${e.message}`);
+          alert("接続エラー: " + e.message);
         }
       }
       // 保存ボタン：設定を適用し、履歴に追加

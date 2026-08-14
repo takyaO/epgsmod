@@ -21,6 +21,29 @@ app.use(express.json());
 // public 配信
 app.use(express.static(path.join(__dirname, "public")));
 
+// EPGStation接続確認用プロキシ
+app.post("/proxy/test", async (req, res) => {
+  try {
+    const { epgApiBase } = req.body;
+    if (!isAllowedEpgApiBase(epgApiBase)) {
+      return res
+        .status(403)
+        .json({ error: "指定されたEPG API URLは許可されていません。" });
+    }
+    if (!epgApiBase) {
+      return res.status(400).json({ error: "EPG API URLが指定されていません" });
+    }
+
+    // 軽量なエンドポイントで接続テスト
+    const targetUrl = `${epgApiBase}/api/version`;
+    await axios.get(targetUrl, { timeout: 5000 });
+    res.json({ success: true, message: "接続成功" });
+  } catch (error) {
+    console.error("Proxy Test Error:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // =========================
 // 検索 API プロキシ
 // =========================

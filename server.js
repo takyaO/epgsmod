@@ -288,6 +288,9 @@ app.post("/proxy/rules/ignore-keyword", async (req, res) => {
         ...searchOption,
         ignoreKeyword,
         ignoreKeyRegExp: true,
+        ignoreName:
+          searchOption.ignoreName ||
+          (!searchOption.ignoreDescription && !searchOption.ignoreExtended),
       },
       reserveOption: rule.reserveOption,
       saveOption: rule.saveOption,

@@ -1681,11 +1681,15 @@
             };
 
             item.innerHTML = `
-    <div style="flex: 1; padding-right: 15px; overflow: hidden; pointer-events: none;">
+    <div style="flex: 1; min-width:0; padding-right: 15px; overflow: hidden;">
       <div style="font-size:1rem; line-height:1.4; word-break:break-all;">
         ${icon} ${mainCondition} ${channelInfo}
       </div>
       ${ignoreInfo}
+      <div style="display:flex; gap:6px; margin-top:6px; max-width:480px;">
+        <input id="ignore-regex-${rule.id}" type="text" placeholder="追加する除外正規表現" onclick="event.stopPropagation()" style="flex:1; min-width:0; width:0; margin:0; padding:6px 8px; font-size:0.85rem;">
+        <button type="button" onclick="event.stopPropagation(); appendIgnoreKeyword(${rule.id});" style="flex:0 0 auto; width:auto; padding:6px 10px; font-size:0.85rem; white-space:nowrap;">除外追加</button>
+      </div>
     </div>
     <div style="flex-shrink: 0; display: flex; align-items: center; gap: 10px;">
       <span style="font-size:0.85rem; color:#666; white-space:nowrap; pointer-events: none;">
@@ -1712,6 +1716,44 @@
         // **注意**: deleteRule関数が呼び出されると、親要素のクリックイベントが意図せず発火する可能性があります。
         // そのため、削除ボタンの onclick ハンドラに event.stopPropagation(); を追加して、
         // 親要素 (item) へのイベント伝播を停止させる必要があります。
+      }
+      async function appendIgnoreKeyword(ruleId) {
+        const input = document.getElementById(`ignore-regex-${ruleId}`);
+        const keyword = input.value.trim();
+        if (!keyword) {
+          alert("追加する除外正規表現を入力してください。");
+          return;
+        }
+        try {
+          new RegExp(keyword);
+        } catch (e) {
+          alert(`正規表現が不正です: ${e.message}`);
+          return;
+        }
+
+        const apiUrl = document
+          .getElementById("epgApiUrl")
+          .value.replace(/\/$/, "");
+        try {
+          const res = await fetch("/proxy/rules/ignore-keyword", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              epgApiBase: apiUrl,
+              ruleId,
+              keyword,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.error || res.statusText);
+          }
+          log(`ルールID ${ruleId} の除外正規表現を追加しました`);
+          fetchRules();
+        } catch (e) {
+          alert(`除外正規表現の追加に失敗しました: ${e.message}`);
+          log(`除外正規表現の追加失敗: ${e.message}`);
+        }
       }
       /**
        * ルール削除 (Proxy経由)

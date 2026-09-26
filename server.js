@@ -251,6 +251,60 @@ app.post("/proxy/rules/delete", async (req, res) => {
   }
 });
 
+app.post("/proxy/rules/ignore-keyword", async (req, res) => {
+  const { epgApiBase, ruleId, keyword } = req.body;
+  if (!isAllowedEpgApiBase(epgApiBase)) {
+    return res.status(403).json({ error: "指定されたEPG API URLは許可されていません。" });
+  }
+  if (!Number.isInteger(Number(ruleId)) || Number(ruleId) < 1) {
+    return res.status(400).json({ error: "ルールIDが不正です。" });
+  }
+  if (typeof keyword !== "string" || !keyword.trim()) {
+    return res.status(400).json({ error: "追加する正規表現を入力してください。" });
+  }
+
+  const addition = keyword.trim();
+  try {
+    new RegExp(addition);
+  } catch (error) {
+    return res.status(400).json({ error: `正規表現が不正です: ${error.message}` });
+  }
+
+  try {
+    const targetUrl = `${epgApiBase}/api/rules/${Number(ruleId)}`;
+    const { data: rule } = await axios.get(targetUrl);
+    const searchOption = rule.searchOption || {};
+    const currentIgnoreKeyword = searchOption.ignoreKeyword || "";
+    const currentPattern = searchOption.ignoreKeyRegExp
+      ? currentIgnoreKeyword
+      : currentIgnoreKeyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const ignoreKeyword = currentPattern
+      ? `${currentPattern}|${addition}`
+      : addition;
+
+    await axios.put(targetUrl, {
+      isTimeSpecification: rule.isTimeSpecification,
+      searchOption: {
+        ...searchOption,
+        ignoreKeyword,
+        ignoreKeyRegExp: true,
+      },
+      reserveOption: rule.reserveOption,
+      saveOption: rule.saveOption,
+      encodeOption: rule.encodeOption,
+    });
+    res.json({ success: true, ignoreKeyword });
+  } catch (error) {
+    console.error("Proxy Ignore Keyword Update Error:", error.message);
+    if (axios.isAxiosError(error) && error.response) {
+      return res.status(error.response.status).json({
+        error: error.response.data.message || error.message,
+      });
+    }
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 6. ルール追加用プロキシ
 app.post("/proxy/rules/add", async (req, res) => {
   try {

@@ -615,6 +615,29 @@
           「更新」ボタンを押してルールを読み込んでください。
         </p>
       </div>
+      <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap">
+        <button
+          onclick="exportRuleList()"
+          class="mini-btn export-btn"
+          style="flex: 1"
+        >
+          ⬇️ JSONエクスポート
+        </button>
+        <button
+          onclick="document.getElementById('ruleImportFile').click()"
+          class="mini-btn"
+          style="flex: 1; background: #6c757d; color: white"
+        >
+          ⬆️ JSONインポート
+        </button>
+        <input
+          id="ruleImportFile"
+          type="file"
+          accept=".json,application/json"
+          style="display: none"
+          onchange="importRuleList(event)"
+        />
+      </div>
     </div>
     <div class="card">
       <div
@@ -1568,6 +1591,201 @@
       /**
        * ルール一覧を取得 (Proxy経由)
        */
+      async function requestRules(apiUrl) {
+        const res = await fetch("/proxy/rules", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ epgApiBase: apiUrl, limit: 0 }),
+        });
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.error || res.statusText);
+        }
+        const data = await res.json();
+        return data.rules || [];
+      }
+
+      function getRuleBackupPayload(rule, index) {
+        if (
+          !rule ||
+          typeof rule !== "object" ||
+          typeof rule.isTimeSpecification !== "boolean" ||
+          !rule.searchOption ||
+          typeof rule.searchOption !== "object" ||
+          Array.isArray(rule.searchOption) ||
+          !rule.reserveOption ||
+          typeof rule.reserveOption !== "object" ||
+          Array.isArray(rule.reserveOption) ||
+          typeof rule.reserveOption.enable !== "boolean" ||
+          typeof rule.reserveOption.allowEndLack !== "boolean" ||
+          typeof rule.reserveOption.avoidDuplicate !== "boolean"
+        ) {
+          throw new Error(`${index + 1}件目のルールデータが不正です。`);
+        }
+
+        for (const key of ["saveOption", "encodeOption"]) {
+          if (
+            rule[key] !== undefined &&
+            (!rule[key] ||
+              typeof rule[key] !== "object" ||
+              Array.isArray(rule[key]))
+          ) {
+            throw new Error(`${index + 1}件目の${key}が不正です。`);
+          }
+        }
+
+        return {
+          isTimeSpecification: rule.isTimeSpecification,
+          searchOption: rule.searchOption,
+          reserveOption: rule.reserveOption,
+          ...(rule.saveOption ? { saveOption: rule.saveOption } : {}),
+          ...(rule.encodeOption ? { encodeOption: rule.encodeOption } : {}),
+        };
+      }
+
+      function canonicalizeRule(value) {
+        if (Array.isArray(value)) {
+          return value.map(canonicalizeRule);
+        }
+        if (value && typeof value === "object") {
+          return Object.fromEntries(
+            Object.keys(value)
+              .sort()
+              .map((key) => [key, canonicalizeRule(value[key])]),
+          );
+        }
+        return value;
+      }
+
+      async function exportRuleList() {
+        const apiUrl = document
+          .getElementById("epgApiUrl")
+          .value.replace(/\/$/, "");
+        try {
+          if (!apiUrl) {
+            throw new Error("EPGStationのURLが設定されていません。");
+          }
+          const rules = await requestRules(apiUrl);
+          const backup = {
+            format: "epgsmod-rules",
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            rules: rules.map(getRuleBackupPayload),
+          };
+          const blob = new Blob([JSON.stringify(backup, null, 2)], {
+            type: "application/json",
+          });
+          const downloadUrl = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = downloadUrl;
+          link.download = `epgsmod-rules-${new Date()
+            .toISOString()
+            .slice(0, 10)}.json`;
+          link.click();
+          setTimeout(() => URL.revokeObjectURL(downloadUrl), 0);
+          log(`ルールバックアップを出力しました: ${rules.length}件`);
+        } catch (error) {
+          console.error("Rule export error:", error);
+          log(`ルールバックアップ出力失敗: ${error.message}`);
+          alert(`ルール一覧のエクスポートに失敗しました: ${error.message}`);
+        }
+      }
+
+      async function importRuleList(event) {
+        const file = event.target.files[0];
+        event.target.value = "";
+        if (!file) return;
+
+        try {
+          const backup = JSON.parse(await file.text());
+          if (
+            !backup ||
+            backup.format !== "epgsmod-rules" ||
+            backup.version !== 1 ||
+            !Array.isArray(backup.rules)
+          ) {
+            throw new Error(
+              "EPGSmodの対応するルールバックアップJSONではありません。",
+            );
+          }
+          const rules = backup.rules.map(getRuleBackupPayload);
+          if (rules.length === 0) {
+            alert("バックアップにルールがありません。");
+            return;
+          }
+
+          const apiUrl = document
+            .getElementById("epgApiUrl")
+            .value.replace(/\/$/, "");
+          if (!apiUrl) {
+            throw new Error("EPGStationのURLが設定されていません。");
+          }
+          if (
+            !confirm(
+              `${rules.length}件のルールを取り込みます。同じ設定のルールはスキップします。続行しますか？`,
+            )
+          ) {
+            return;
+          }
+
+          const currentRules = await requestRules(apiUrl);
+          const existingRules = new Set(
+            currentRules.map((rule, index) =>
+              JSON.stringify(
+                canonicalizeRule(getRuleBackupPayload(rule, index)),
+              ),
+            ),
+          );
+          let importedCount = 0;
+          let skippedCount = 0;
+          const failures = [];
+
+          for (const [index, rule] of rules.entries()) {
+            const signature = JSON.stringify(canonicalizeRule(rule));
+            if (existingRules.has(signature)) {
+              skippedCount++;
+              continue;
+            }
+            try {
+              const response = await fetch("/proxy/rules/add", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  epgApiBase: apiUrl,
+                  rulePayload: rule,
+                }),
+              });
+              if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+              }
+              importedCount++;
+              existingRules.add(signature);
+            } catch (error) {
+              failures.push(`${index + 1}件目: ${error.message}`);
+            }
+          }
+
+          log(
+            `ルールバックアップ取り込み完了: 追加${importedCount}件、重複スキップ${skippedCount}件、失敗${failures.length}件`,
+          );
+          await fetchRules();
+          const failureDetails =
+            failures.length > 0
+              ? `\n\n失敗内容:\n${failures.slice(0, 5).join("\n")}${
+                  failures.length > 5 ? `\nほか${failures.length - 5}件` : ""
+                }`
+              : "";
+          alert(
+            `ルールの取り込みが完了しました。\n追加: ${importedCount}件\n重複スキップ: ${skippedCount}件\n失敗: ${failures.length}件${failureDetails}`,
+          );
+        } catch (error) {
+          console.error("Rule import error:", error);
+          log(`ルールバックアップ取り込み失敗: ${error.message}`);
+          alert(`ルール一覧のインポートに失敗しました: ${error.message}`);
+        }
+      }
+
       async function fetchRules() {
         const listDiv = document.getElementById("ruleList");
         const apiUrl = document
@@ -1575,22 +1793,7 @@
           .value.replace(/\/$/, "");
         listDiv.innerHTML = "<p>ルールを取得中...</p>";
         try {
-          //  limit: 0 (全件取得) を追加
-          const payload = {
-            epgApiBase: apiUrl,
-            limit: 0,
-          };
-          const res = await fetch("/proxy/rules", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
-          if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.error || res.statusText);
-          }
-          const data = await res.json();
-          const rules = data.rules || [];
+          const rules = await requestRules(apiUrl);
           renderRuleList(rules);
           log(`ルール一覧取得完了: ${rules.length}件`);
         } catch (e) {

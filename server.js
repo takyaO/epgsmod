@@ -10,6 +10,7 @@ process.on("unhandledRejection", (err) => {
 const express = require("express");
 const axios = require("axios");
 const path = require("path");
+const { version } = require("./package.json");
 const app = express();
 //const PORT = 3001;
 // 環境変数 PORT が設定されていればそれを使用し、なければ 3001 をデフォルトとして使用する
@@ -17,6 +18,10 @@ const PORT = process.env.PORT || 3001;
 const { URL } = require("url");
 
 app.use(express.json());
+
+app.get("/version", (req, res) => {
+  res.json({ version });
+});
 
 // public 配信
 app.use(express.static(path.join(__dirname, "public")));

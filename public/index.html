@@ -377,9 +377,9 @@
     </style>
   </head>
   <body>
-    <h1>📺 EPGSmod 録画予約</h1>
+    <h1>EPGSmod</h1>
     <div class="card">
-      <h3>🌐 EPGStation設定</h3>
+      <h3>EPGStation設定</h3>
 
       <div class="custom-input-row">
         <input
@@ -2348,6 +2348,28 @@
         };
         return text.replace(/[&<>"']/g, (m) => map[m]);
       }
+
+      async function updateVersionTitle() {
+        const response = await fetch("/version");
+        if (!response.ok) {
+          throw new Error(
+            `バージョン情報の取得に失敗しました (HTTP ${response.status})`,
+          );
+        }
+
+        const { version } = await response.json();
+        if (!version) {
+          throw new Error("バージョン情報がありません");
+        }
+
+        const title = `EPGSmod v${version}`;
+        document.title = title;
+        document.querySelector("h1").textContent = title;
+      }
+
+      updateVersionTitle().catch((error) => {
+        console.error(error);
+      });
     </script>
   </body>
 </html>

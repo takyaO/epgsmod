@@ -1190,6 +1190,7 @@
           GR: true,
           BS: true,
           CS: true,
+          times: [{ week: 127 }],
         };
         // [再]除外の処理
         if (ignoreRebroadcastChecked) {
@@ -1223,12 +1224,17 @@
             body: JSON.stringify(payload),
           });
           const data = await r.json();
-          if (data && data.error) {
-            log(`追加エラー: ${data.error}`);
-            alert(`追加失敗: ${data.error}`);
-            return;
+          if (!r.ok) {
+            throw new Error(
+              (data && (data.error || data.message)) ||
+                `HTTP ${r.status}`,
+            );
           }
-          log(`追加 OK: ルールID ${data.id}`);
+          const ruleId = data && (data.ruleId ?? data.id);
+          if (!Number.isInteger(ruleId)) {
+            throw new Error("追加結果からルールIDを取得できませんでした。");
+          }
+          log(`追加 OK: ルールID ${ruleId}`);
           alert("追加しました！");
 
           // フォームのリセット

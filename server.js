@@ -83,31 +83,41 @@ app.post("/proxy/search", function (req, res) {
 // =========================
 // ルール追加 API
 // =========================
-app.post("/proxy/rule", function (req, res) {
-  // ★ 修正: クライアントのペイロードから EPG URLを取得
-  const clientEpgApiBase = req.body.epgApiBase;
-  if (!isAllowedEpgApiBase(clientEpgApiBase)) {
-    console.error(`SSRF Risk Detected: ${clientEpgApiBase}`);
+app.post("/proxy/rule", async (req, res) => {
+  const { epgApiBase, ...rulePayload } = req.body;
+  if (!isAllowedEpgApiBase(epgApiBase)) {
+    console.error(`SSRF Risk Detected: ${epgApiBase}`);
     return res
       .status(403)
       .json({ error: "指定されたEPG API URLは許可されていません。" });
   }
-  const bodyForEpgstation = { ...req.body };
-  delete bodyForEpgstation.epgApiBase; // EPGStationへは渡さない
-
-  if (!clientEpgApiBase) {
+  if (!epgApiBase) {
     return res.status(400).json({ error: "EPG API URLが指定されていません" });
   }
 
-  axios
-    .post(clientEpgApiBase + "/api/rules/keyword", bodyForEpgstation)
-    .then(function (r) {
-      res.json(r.data);
-    })
-    .catch(function (e) {
-      // ... (エラー処理)
-      res.status(500).json({ error: "ルールの追加に失敗しました" });
-    });
+  try {
+    let apiRes;
+    try {
+      apiRes = await axios.post(`${epgApiBase}/api/rules`, rulePayload);
+    } catch (error) {
+      if (!axios.isAxiosError(error) || error.response?.status !== 404) {
+        throw error;
+      }
+      apiRes = await axios.post(
+        `${epgApiBase}/api/rules/keyword`,
+        rulePayload,
+      );
+    }
+    res.status(apiRes.status).json(apiRes.data);
+  } catch (error) {
+    console.error("Proxy Add Rule Error:", error.message);
+    if (axios.isAxiosError(error) && error.response) {
+      return res.status(error.response.status).json({
+        error: error.response.data.message || error.message,
+      });
+    }
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // 1. 予約リスト取得用プロキシ

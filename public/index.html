@@ -2330,6 +2330,11 @@
             const err = await response
               .json()
               .catch(() => ({ error: "Unknown error" }));
+            if (response.status === 409 && err.code === "TUNER_CONFLICT") {
+              log(`予約未登録（チューナー競合）: ${programName}`);
+              alert(err.error);
+              return;
+            }
             throw new Error(err.error || `HTTP ${response.status}`);
           }
 

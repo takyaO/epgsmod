@@ -494,6 +494,17 @@ app.post("/proxy/reserves/add", async (req, res) => {
   } catch (error) {
     console.error("Proxy Add Reserve Error:", error.message);
     if (axios.isAxiosError(error) && error.response) {
+      if (
+        error.response.data &&
+        error.response.data.errors === "ReservationManageModelAddReserveConflict"
+      ) {
+        return res.status(409).json({
+          code: "TUNER_CONFLICT",
+          error:
+            "チューナー競合のため、EPGStationに予約は登録されませんでした。予約を登録するには、先に競合を解消してください。",
+        });
+      }
+
       res.status(error.response.status).json({
         error: error.response.data.message || error.message,
         details: error.response.data,

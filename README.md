@@ -15,7 +15,7 @@
 
 ## 動作要件
 
-* EPGStation v2
+* EPGStation v2/v3
 
 ## 動作環境
 
